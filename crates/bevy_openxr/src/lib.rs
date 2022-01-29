@@ -310,7 +310,10 @@ impl Plugin for OpenXrPlugin {
         app.register_type::<XRProjection>();
         app.add_system_to_stage(
             CoreStage::PostUpdate,
-            update_frusta::<XRProjection>.after(TransformSystem::TransformPropagate),
+            update_frusta::<XRProjection>
+                .after(TransformSystem::TransformPropagate)
+                //  ensures we execute at the right time without adding more labels
+                .before(VisibilitySystems::UpdatePerspectiveFrusta),
         );
         app.add_system_to_stage(CoreStage::PostUpdate, camera_system::<XRProjection>);
     }

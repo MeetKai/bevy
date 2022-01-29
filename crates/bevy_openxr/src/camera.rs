@@ -60,7 +60,7 @@ impl CameraProjection for XRProjection {
         // return Mat4::perspective_infinite_reverse_rh(y_fov, x_fov / y_fov, self.near);
 
         let fov = self.fov;
-        let is_vulkan_api = true; // FIXME wgpu probably abstracts this
+        let is_vulkan_api = false; // FIXME wgpu probably abstracts this
         let near_z = self.near;
         let far_z = self.far;
 
