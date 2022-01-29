@@ -1,4 +1,6 @@
+mod camera;
 mod conversion;
+use camera::{XRCameraBundle, XRProjection};
 use conversion::*;
 mod interaction;
 mod presentation;
@@ -10,14 +12,17 @@ use ash::vk::Handle;
 use bevy_math::{Quat, UVec2, Vec3};
 use bevy_render::{
     camera::{
-        ActiveCameras, Camera, ManualTextureViews, PerspectiveCameraBundle, PerspectiveProjection,
-        RenderTarget,
+        camera_system, ActiveCameras, Camera, CameraProjection, ManualTextureViews,
+        PerspectiveCameraBundle, PerspectiveProjection, RenderTarget,
     },
     prelude::{Color, Msaa},
+    primitives::Frustum,
+    view::{update_frusta, VisibilitySystems},
 };
 use bevy_transform::{
     components::{GlobalTransform, Transform},
     hierarchy::BuildWorldChildren,
+    TransformSystem,
 };
 use bevy_utils::Uuid;
 pub use interaction::*;
@@ -25,7 +30,7 @@ pub use interaction::*;
 use bevy_app::{App, AppExit, CoreStage, Events, ManualEventReader, Plugin};
 use bevy_ecs::{
     prelude::{Bundle, Component},
-    schedule::Schedule,
+    schedule::{ParallelSystemDescriptorCoercion, Schedule},
     system::{IntoSystem, Query, Res, System},
     world::EntityMut,
 };
@@ -301,6 +306,13 @@ impl Plugin for OpenXrPlugin {
             .set_runner(runner);
 
         app.insert_resource(Msaa { samples: 1 });
+
+        app.register_type::<XRProjection>();
+        app.add_system_to_stage(
+            CoreStage::PostUpdate,
+            update_frusta::<XRProjection>.after(TransformSystem::TransformPropagate),
+        );
+        app.add_system_to_stage(CoreStage::PostUpdate, camera_system::<XRProjection>);
     }
 }
 
@@ -730,7 +742,7 @@ impl XrCameras {
     pub fn spawn(mut e: EntityMut, left_id: Uuid, right_id: Uuid) {
         e.with_children(|parent| {
             parent
-                .spawn_bundle(PerspectiveCameraBundle {
+                .spawn_bundle(XRCameraBundle {
                     camera: Camera {
                         name: Some("left_eye".into()),
                         target: RenderTarget::TextureView(left_id),
@@ -740,7 +752,7 @@ impl XrCameras {
                 })
                 .insert(Eye::Left);
             parent
-                .spawn_bundle(PerspectiveCameraBundle {
+                .spawn_bundle(XRCameraBundle {
                     camera: Camera {
                         name: Some("right_eye".into()),
                         target: RenderTarget::TextureView(right_id),
@@ -757,23 +769,29 @@ impl XrCameras {
 }
 
 pub fn update_xrcamera_view(
-    mut cam: Query<(&mut PerspectiveProjection, &mut Transform, &Eye)>,
+    mut cam: Query<(&mut XRProjection, &mut Transform, &mut Frustum, &Eye)>,
     views: Res<Vec<View>>,
 ) {
-    for (mut perspective, mut transform, eye) in cam.iter_mut() {
-        // println!("updating {:?}", eye);
+    for (mut projection, mut transform, mut frustum, eye) in cam.iter_mut() {
         let view_idx = match eye {
             Eye::Left => 0,
             Eye::Right => 1,
         };
         let view = views.get(view_idx).unwrap();
 
-        let x_fov = view.fov.angle_left.abs() + view.fov.angle_right.abs();
-        let y_fov = view.fov.angle_up.abs() + view.fov.angle_down.abs();
-        //  y radians
-        perspective.fov = y_fov;
-        //  width / height
-        perspective.aspect_ratio = x_fov / y_fov;
+        // let x_fov = view.fov.angle_left.abs() + view.fov.angle_right.abs();
+        // let y_fov = view.fov.angle_up.abs() + view.fov.angle_down.abs();
+        // //  y radians
+        // perspective.fov = y_fov;
+        // //  width / height
+        // perspective.aspect_ratio = x_fov / y_fov;
+        projection.fov = view.fov;
+        // *frustum = Frustum::from_view_projection(
+        //     &projection.get_projection_matrix(),
+        //     &Vec3::ZERO,
+        //     &Vec3::Z,
+        //     projection.far(),
+        // );
 
         let rot = view.pose.orientation;
         transform.rotation = Quat::from_xyzw(rot.x, rot.y, rot.z, rot.w);
