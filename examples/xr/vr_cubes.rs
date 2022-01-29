@@ -27,8 +27,8 @@ fn dummy() {}
 
 fn init_camera_position(mut q: Query<(&mut Transform, &XrCameras)>) {
     for (mut transform, _) in q.iter_mut() {
-        println!("updated camera");
         transform.translation = Vec3::new(10., 10., 10.);
+        transform.look_at(Vec3::new(0., 0., 0.), Vec3::Y);
     }
 }
 
