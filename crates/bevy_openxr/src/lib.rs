@@ -350,12 +350,6 @@ fn runner(mut app: App) {
     app.world
         .insert_resource(XrSystem::new(available_session_modes));
     println!("inserted XrSystem");
-    // Run the startup systems. The user can verify which session modes are supported and choose
-    // one.
-    // app.schedule
-    //     .get_stage_mut::<Schedule>(&CoreStage::Startup)
-    //     .unwrap()
-    //     .run_once(&mut app.world);
 
     if app_exit_event_reader
         .iter(&app.world.get_resource_mut::<Events<AppExit>>().unwrap())

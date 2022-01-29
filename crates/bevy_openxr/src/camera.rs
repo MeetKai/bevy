@@ -1,5 +1,5 @@
 use bevy_ecs::prelude::{Bundle, Component, ReflectComponent};
-use bevy_math::Mat4;
+use bevy_math::{Mat4, Vec4};
 use bevy_reflect::Reflect;
 use bevy_render::{
     camera::{Camera, CameraProjection, DepthCalculation},
@@ -62,7 +62,8 @@ impl CameraProjection for XRProjection {
         let fov = self.fov;
         let is_vulkan_api = false; // FIXME wgpu probably abstracts this
         let near_z = self.near;
-        let far_z = self.far;
+        let far_z = -1.; //   use infinite proj
+                         // let far_z = self.far;
 
         let tan_angle_left = fov.angle_left.tan();
         let tan_angle_right = fov.angle_right.tan();
@@ -88,7 +89,7 @@ impl CameraProjection for XRProjection {
         // const float offsetZ =
         //     (graphicsApi == GRAPHICS_OPENGL || graphicsApi == GRAPHICS_OPENGL_ES) ? nearZ : 0;
         // FIXME handle enum of graphics apis
-        let offset_z = if !is_vulkan_api { near_z } else { 0. };
+        let offset_z = 0.;
 
         let mut cols: [f32; 16] = [0.0; 16];
 
@@ -113,6 +114,17 @@ impl CameraProjection for XRProjection {
             cols[7] = 0.;
             cols[11] = -1.;
             cols[15] = 0.;
+
+            //  bevy uses the _reverse_ infinite projection
+            //  https://dev.theomader.com/depth-precision/
+            let z_reversal = Mat4::from_cols_array_2d(&[
+                [1f32, 0., 0., 0.],
+                [0., 1., 0., 0.],
+                [0., 0., -1., 0.],
+                [0., 0., 1., 1.],
+            ]);
+
+            return z_reversal * Mat4::from_cols_array(&cols);
         } else {
             // normal projection
             cols[0] = 2. / tan_angle_width;
