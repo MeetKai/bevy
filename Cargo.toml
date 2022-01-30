@@ -98,6 +98,7 @@ bevy_ci_testing = ["bevy_internal/bevy_ci_testing"]
 [dependencies]
 bevy_dylib = { path = "crates/bevy_dylib", version = "0.6.0", default-features = false, optional = true }
 bevy_internal = { path = "crates/bevy_internal", version = "0.6.0", default-features = false }
+log = "0.4.14"
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 bevy_internal = { path = "crates/bevy_internal", version = "0.6.0", default-features = false, features = [

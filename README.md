@@ -20,7 +20,16 @@ This branch has 0.6 rebased in.
 - [] Add back in motion controller/input support (it was ripped out in an effort to get the example to not panic)
 - [x] Prevent window from opening (shows as Not Responding on Windows OS).
 - [ ] Open Question: ability to have winit windows co-exist with openxr runner
-- [] Get android working
+
+  - this could be useful for things like configuration UIs in pancake land
+
+- [x] Get Oculus working
+  
+  - no winit needed 
+  - upgrading to ndk-glue 0.6.0 fixed the crash, but this will likely break normal android support until winit upgrades ndk-glue
+
+    - https://github.com/rust-windowing/winit/pull/2163
+  
 
 # [![Bevy](assets/branding/bevy_logo_light_dark_and_dimmed.svg)](https://bevyengine.org)
 

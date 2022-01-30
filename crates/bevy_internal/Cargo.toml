@@ -80,4 +80,4 @@ bevy_xr = { path = "../bevy_xr", optional = true, version = "0.6.0" }
 bevy_openxr = { path = "../bevy_openxr", optional = true, version = "0.6.0" }
 
 [target.'cfg(target_os = "android")'.dependencies]
-ndk-glue = {version = "0.5", features = ["logger"]}
+ndk-glue = { version = "0.6", features = ["logger"] }

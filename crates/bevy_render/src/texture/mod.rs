@@ -50,7 +50,7 @@ pub trait BevyDefault {
 impl BevyDefault for wgpu::TextureFormat {
     fn bevy_default() -> Self {
         if cfg!(target_os = "android") || cfg!(target_arch = "wasm32") {
-            // Bgra8UnormSrgb texture missing on some Android devices
+            // Bgra8UnormSrgb texture missing on some Android devices, including Quest 2
             wgpu::TextureFormat::Rgba8UnormSrgb
         } else {
             wgpu::TextureFormat::Bgra8UnormSrgb
