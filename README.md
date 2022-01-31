@@ -24,12 +24,17 @@ This branch has 0.6 rebased in.
   - this could be useful for things like configuration UIs in pancake land
 
 - [x] Get Oculus working
-  
-  - no winit needed 
+
+  - no winit needed
   - upgrading to ndk-glue 0.6.0 fixed the crash, but this will likely break normal android support until winit upgrades ndk-glue
 
     - https://github.com/rust-windowing/winit/pull/2163
-  
+
+- [ ] MSAA
+
+  - Oculus claims to support 4x
+
+- [ ] bevy_ui
 
 # [![Bevy](assets/branding/bevy_logo_light_dark_and_dimmed.svg)](https://bevyengine.org)
 
