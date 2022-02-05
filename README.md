@@ -1,6 +1,13 @@
 This is a work-in-progress branch of bevy to add openxr support. It is based mostly off of [zarik5's work](https://github.com/zarik5/bevy). The goal is to support both Oculus and PCVR.
 
-Run the example with `cargo run --example vr_cubes`
+If running on Oculus, download [oculus sdk](https://developer.oculus.com/downloads/package/oculus-mobile-sdk/) and move corresponding libraries into `libs/`
+
+```
+libs\arm64-v8a\libopenxr_loader.so
+libs\armeabi-v7a\libopenxr_loader.so
+```
+
+Run the example with `cargo run --example vr_cubes --release`
 
 This branch has 0.6 rebased in.
 
@@ -35,6 +42,8 @@ This branch has 0.6 rebased in.
   - Oculus claims to support 4x
 
 - [ ] bevy_ui
+
+
 
 # [![Bevy](assets/branding/bevy_logo_light_dark_and_dimmed.svg)](https://bevyengine.org)
 
