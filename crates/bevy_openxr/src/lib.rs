@@ -29,7 +29,7 @@ pub use interaction::*;
 
 use bevy_app::{App, AppExit, CoreStage, Events, ManualEventReader, Plugin};
 use bevy_ecs::{
-    prelude::{Bundle, Component},
+    prelude::{Bundle, Component, Without},
     schedule::{ParallelSystemDescriptorCoercion, Schedule},
     system::{IntoSystem, Query, Res, System},
     world::EntityMut,
@@ -42,7 +42,7 @@ use openxr::{self as xr, sys};
 use parking_lot::RwLock;
 use presentation::GraphicsContextHandles;
 use serde::{Deserialize, Serialize};
-use xr::View;
+use xr::{Vector3f, View};
 
 use std::{error::Error, ops::Deref, sync::Arc, thread, time::Duration};
 use wgpu::{TextureUsages, TextureViewDescriptor};
@@ -766,10 +766,27 @@ impl XrCameras {
     }
 }
 
+trait Vec3Conv {
+    fn to_vec3(&self) -> Vec3;
+}
+
+impl Vec3Conv for Vector3f {
+    fn to_vec3(&self) -> Vec3 {
+        Vec3::new(self.x, self.y, self.z)
+    }
+}
+
 pub fn update_xrcamera_view(
     mut cam: Query<(&mut XRProjection, &mut Transform, &mut Frustum, &Eye)>,
+    mut xr_cam: Query<(&mut Transform, &XrCameras), Without<Eye>>,
     views: Res<Vec<View>>,
 ) {
+    //TODO: do this for midpoint of rotation as well using Quat::slerp
+    let midpoint = (views.get(0).unwrap().pose.position.to_vec3()
+        + views.get(1).unwrap().pose.position.to_vec3())
+        / 2.;
+    xr_cam.single_mut().0.translation = midpoint;
+
     for (mut projection, mut transform, mut frustum, eye) in cam.iter_mut() {
         let view_idx = match eye {
             Eye::Left => 0,
@@ -794,6 +811,6 @@ pub fn update_xrcamera_view(
         let rot = view.pose.orientation;
         transform.rotation = Quat::from_xyzw(rot.x, rot.y, rot.z, rot.w);
         let pos = view.pose.position;
-        transform.translation = Vec3::new(pos.x, pos.y, pos.z);
+        transform.translation = pos.to_vec3() - midpoint;
     }
 }
