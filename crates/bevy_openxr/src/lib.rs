@@ -42,7 +42,7 @@ use openxr::{self as xr, sys};
 use parking_lot::RwLock;
 use presentation::GraphicsContextHandles;
 use serde::{Deserialize, Serialize};
-use xr::{Vector3f, View};
+use xr::{Quaternionf, Vector3f, View};
 
 use std::{error::Error, ops::Deref, sync::Arc, thread, time::Duration};
 use wgpu::{TextureUsages, TextureViewDescriptor};
@@ -776,40 +776,46 @@ impl Vec3Conv for Vector3f {
     }
 }
 
+trait QuatConv {
+    fn to_quat(&self) -> Quat;
+}
+
+impl QuatConv for Quaternionf {
+    fn to_quat(&self) -> Quat {
+        Quat::from_xyzw(self.x, self.y, self.z, self.w)
+    }
+}
+
 pub fn update_xrcamera_view(
-    mut cam: Query<(&mut XRProjection, &mut Transform, &mut Frustum, &Eye)>,
+    mut cam: Query<(&mut XRProjection, &mut Transform, &Eye)>,
     mut xr_cam: Query<(&mut Transform, &XrCameras), Without<Eye>>,
     views: Res<Vec<View>>,
 ) {
-    //TODO: do this for midpoint of rotation as well using Quat::slerp
     let midpoint = (views.get(0).unwrap().pose.position.to_vec3()
         + views.get(1).unwrap().pose.position.to_vec3())
         / 2.;
     xr_cam.single_mut().0.translation = midpoint;
 
-    for (mut projection, mut transform, mut frustum, eye) in cam.iter_mut() {
+    let left_rot = views.get(0).unwrap().pose.orientation.to_quat();
+    let right_rot = views.get(1).unwrap().pose.orientation.to_quat();
+    let mid_rot = if left_rot.dot(right_rot) >= 0. {
+        left_rot.slerp(right_rot, 0.5)
+    } else {
+        right_rot.slerp(left_rot, 0.5)
+    };
+    let mid_rot_inverse = mid_rot.inverse();
+    xr_cam.single_mut().0.rotation = mid_rot;
+
+    for (mut projection, mut transform, eye) in cam.iter_mut() {
         let view_idx = match eye {
             Eye::Left => 0,
             Eye::Right => 1,
         };
         let view = views.get(view_idx).unwrap();
 
-        // let x_fov = view.fov.angle_left.abs() + view.fov.angle_right.abs();
-        // let y_fov = view.fov.angle_up.abs() + view.fov.angle_down.abs();
-        // //  y radians
-        // perspective.fov = y_fov;
-        // //  width / height
-        // perspective.aspect_ratio = x_fov / y_fov;
         projection.fov = view.fov;
-        // *frustum = Frustum::from_view_projection(
-        //     &projection.get_projection_matrix(),
-        //     &Vec3::ZERO,
-        //     &Vec3::Z,
-        //     projection.far(),
-        // );
 
-        let rot = view.pose.orientation;
-        transform.rotation = Quat::from_xyzw(rot.x, rot.y, rot.z, rot.w);
+        transform.rotation = mid_rot_inverse * view.pose.orientation.to_quat();
         let pos = view.pose.position;
         transform.translation = pos.to_vec3() - midpoint;
     }
