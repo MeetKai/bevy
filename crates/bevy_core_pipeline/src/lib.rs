@@ -22,12 +22,13 @@ use std::ops::Range;
 use bevy_app::{App, Plugin};
 use bevy_core::FloatOrd;
 use bevy_ecs::prelude::*;
+use bevy_reflect::Reflect;
 use bevy_render::{
-    camera::{ActiveCameras, CameraPlugin, RenderTarget},
+    camera::{ActiveCamera, Camera2d, Camera3d, ExtractedCamera, RenderTarget},
     color::Color,
     render_graph::{EmptyNode, RenderGraph, SlotInfo, SlotType},
     render_phase::{
-        batch_phase_system, sort_phase_system, BatchedPhaseItem, CachedPipelinePhaseItem,
+        batch_phase_system, sort_phase_system, BatchedPhaseItem, CachedRenderPipelinePhaseItem,
         DrawFunctionId, DrawFunctions, EntityPhaseItem, PhaseItem, RenderPhase,
     },
     render_resource::*,
@@ -37,7 +38,10 @@ use bevy_render::{
     RenderApp, RenderStage, RenderWorld,
 };
 
-/// Resource that configures the clear color used for each RenderTarget
+/// When used as a resource, sets the color that is used to clear the screen between frames.
+///
+/// This color appears as the "background" color for simple apps, when
+/// there are portions of the screen with nothing rendered.
 #[derive(Clone, Debug)]
 pub struct ClearColor {
     /// The color used for any target not specified in `per_target`
@@ -64,6 +68,20 @@ impl ClearColor {
 impl Default for ClearColor {
     fn default() -> Self {
         Self::from_default_color(Color::rgb(0.4, 0.4, 0.4))
+    }
+}
+
+#[derive(Clone, Debug, Default)]
+pub struct RenderTargetClearColors {
+    colors: HashMap<RenderTarget, Color>,
+}
+
+impl RenderTargetClearColors {
+    pub fn get(&self, target: &RenderTarget) -> Option<&Color> {
+        self.colors.get(target)
+    }
+    pub fn insert(&mut self, target: RenderTarget, color: Color) {
+        self.colors.insert(target, color);
     }
 }
 
@@ -115,7 +133,8 @@ pub enum CorePipelineRenderSystems {
 
 impl Plugin for CorePipelinePlugin {
     fn build(&self, app: &mut App) {
-        app.init_resource::<ClearColor>();
+        app.init_resource::<ClearColor>()
+            .init_resource::<RenderTargetClearColors>();
 
         let render_app = match app.get_sub_app_mut(RenderApp) {
             Ok(render_app) => render_app,
@@ -147,7 +166,7 @@ impl Plugin for CorePipelinePlugin {
         let clear_pass_node = ClearPassNode::new(&mut render_app.world);
         let pass_node_2d = MainPass2dNode::new(&mut render_app.world);
         let pass_node_3d = MainPass3dNode::new(&mut render_app.world);
-        let mut graph = render_app.world.get_resource_mut::<RenderGraph>().unwrap();
+        let mut graph = render_app.world.resource_mut::<RenderGraph>();
 
         let mut draw_2d_graph = RenderGraph::default();
         draw_2d_graph.add_node(draw_2d_graph::node::MAIN_PASS, pass_node_2d);
@@ -200,7 +219,7 @@ impl Plugin for CorePipelinePlugin {
 pub struct Transparent2d {
     pub sort_key: FloatOrd,
     pub entity: Entity,
-    pub pipeline: CachedPipelineId,
+    pub pipeline: CachedRenderPipelineId,
     pub draw_function: DrawFunctionId,
     /// Range in the vertex buffer of this item
     pub batch_range: Option<Range<u32>>,
@@ -227,9 +246,9 @@ impl EntityPhaseItem for Transparent2d {
     }
 }
 
-impl CachedPipelinePhaseItem for Transparent2d {
+impl CachedRenderPipelinePhaseItem for Transparent2d {
     #[inline]
-    fn cached_pipeline(&self) -> CachedPipelineId {
+    fn cached_pipeline(&self) -> CachedRenderPipelineId {
         self.pipeline
     }
 }
@@ -246,7 +265,7 @@ impl BatchedPhaseItem for Transparent2d {
 
 pub struct Opaque3d {
     pub distance: f32,
-    pub pipeline: CachedPipelineId,
+    pub pipeline: CachedRenderPipelineId,
     pub entity: Entity,
     pub draw_function: DrawFunctionId,
 }
@@ -272,16 +291,16 @@ impl EntityPhaseItem for Opaque3d {
     }
 }
 
-impl CachedPipelinePhaseItem for Opaque3d {
+impl CachedRenderPipelinePhaseItem for Opaque3d {
     #[inline]
-    fn cached_pipeline(&self) -> CachedPipelineId {
+    fn cached_pipeline(&self) -> CachedRenderPipelineId {
         self.pipeline
     }
 }
 
 pub struct AlphaMask3d {
     pub distance: f32,
-    pub pipeline: CachedPipelineId,
+    pub pipeline: CachedRenderPipelineId,
     pub entity: Entity,
     pub draw_function: DrawFunctionId,
 }
@@ -307,16 +326,16 @@ impl EntityPhaseItem for AlphaMask3d {
     }
 }
 
-impl CachedPipelinePhaseItem for AlphaMask3d {
+impl CachedRenderPipelinePhaseItem for AlphaMask3d {
     #[inline]
-    fn cached_pipeline(&self) -> CachedPipelineId {
+    fn cached_pipeline(&self) -> CachedRenderPipelineId {
         self.pipeline
     }
 }
 
 pub struct Transparent3d {
     pub distance: f32,
-    pub pipeline: CachedPipelineId,
+    pub pipeline: CachedRenderPipelineId,
     pub entity: Entity,
     pub draw_function: DrawFunctionId,
 }
@@ -342,51 +361,71 @@ impl EntityPhaseItem for Transparent3d {
     }
 }
 
-impl CachedPipelinePhaseItem for Transparent3d {
+impl CachedRenderPipelinePhaseItem for Transparent3d {
     #[inline]
-    fn cached_pipeline(&self) -> CachedPipelineId {
+    fn cached_pipeline(&self) -> CachedRenderPipelineId {
         self.pipeline
     }
 }
 
-pub fn extract_clear_color(clear_color: Res<ClearColor>, mut render_world: ResMut<RenderWorld>) {
+pub fn extract_clear_color(
+    clear_color: Res<ClearColor>,
+    clear_colors: Res<RenderTargetClearColors>,
+    mut render_world: ResMut<RenderWorld>,
+) {
     // If the clear color has changed
     if clear_color.is_changed() {
         // Update the clear color resource in the render world
-        render_world.insert_resource(clear_color.clone())
+        render_world.insert_resource(clear_color.clone());
+    }
+
+    // If the clear color has changed
+    if clear_colors.is_changed() {
+        // Update the clear color resource in the render world
+        render_world.insert_resource(clear_colors.clone());
     }
 }
 
+//  TODO: use is_active camera component to generically handle cameras being active, as jacob mentioned in his commit message, then we can remove these marker types?
+#[derive(Component, Default, Reflect)]
+#[reflect(Component)]
+pub struct CameraLeftEye;
+
+#[derive(Component, Default, Reflect)]
+#[reflect(Component)]
+pub struct CameraRightEye;
+
 pub fn extract_core_pipeline_camera_phases(
     mut commands: Commands,
-    active_cameras: Res<ActiveCameras>,
+    active_2d: Res<ActiveCamera<Camera2d>>,
+    active_3d: Res<ActiveCamera<Camera3d>>,
+    active_left_eye: Option<Res<ActiveCamera<CameraLeftEye>>>,
+    active_right_eye: Option<Res<ActiveCamera<CameraRightEye>>>,
 ) {
-    if let Some(camera_2d) = active_cameras.get(CameraPlugin::CAMERA_2D) {
-        if let Some(entity) = camera_2d.entity {
-            commands
-                .get_or_spawn(entity)
-                .insert(RenderPhase::<Transparent2d>::default());
-        }
+    if let Some(entity) = active_2d.get() {
+        commands
+            .get_or_spawn(entity)
+            .insert(RenderPhase::<Transparent2d>::default());
     }
-    if let Some(camera_3d) = active_cameras.get(CameraPlugin::CAMERA_3D) {
-        if let Some(entity) = camera_3d.entity {
+    if let Some(entity) = active_3d.get() {
+        commands.get_or_spawn(entity).insert_bundle((
+            RenderPhase::<Opaque3d>::default(),
+            RenderPhase::<AlphaMask3d>::default(),
+            RenderPhase::<Transparent3d>::default(),
+        ));
+    }
+
+    let (left, right) = (
+        active_left_eye.map(|res| res.get()).flatten(),
+        active_right_eye.map(|res| res.get()).flatten(),
+    );
+    for cam in [left, right] {
+        if let Some(entity) = cam {
             commands.get_or_spawn(entity).insert_bundle((
                 RenderPhase::<Opaque3d>::default(),
                 RenderPhase::<AlphaMask3d>::default(),
                 RenderPhase::<Transparent3d>::default(),
             ));
-        }
-    }
-
-    for eye in ["left_eye", "right_eye"] {
-        if let Some(camera_3d) = active_cameras.get(eye) {
-            if let Some(entity) = camera_3d.entity {
-                commands.get_or_spawn(entity).insert_bundle((
-                    RenderPhase::<Opaque3d>::default(),
-                    RenderPhase::<AlphaMask3d>::default(),
-                    RenderPhase::<Transparent3d>::default(),
-                ));
-            }
         }
     }
 }
@@ -397,7 +436,7 @@ pub fn prepare_core_views_system(
     msaa: Res<Msaa>,
     render_device: Res<RenderDevice>,
     views_3d: Query<
-        (Entity, &ExtractedView),
+        (Entity, &ExtractedView, Option<&ExtractedCamera>),
         (
             With<RenderPhase<Opaque3d>>,
             With<RenderPhase<AlphaMask3d>>,
@@ -405,24 +444,35 @@ pub fn prepare_core_views_system(
         ),
     >,
 ) {
-    for (entity, view) in views_3d.iter() {
-        let cached_texture = texture_cache.get(
-            &render_device,
-            TextureDescriptor {
-                label: Some("view_depth_texture"),
-                size: Extent3d {
-                    depth_or_array_layers: 1,
-                    width: view.width as u32,
-                    height: view.height as u32,
+    let mut textures = HashMap::default();
+    for (entity, view, camera) in views_3d.iter() {
+        let mut get_cached_texture = || {
+            texture_cache.get(
+                &render_device,
+                TextureDescriptor {
+                    label: Some("view_depth_texture"),
+                    size: Extent3d {
+                        depth_or_array_layers: 1,
+                        width: view.width as u32,
+                        height: view.height as u32,
+                    },
+                    mip_level_count: 1,
+                    sample_count: msaa.samples,
+                    dimension: TextureDimension::D2,
+                    format: TextureFormat::Depth32Float, /* PERF: vulkan docs recommend using 24
+                                                          * bit depth for better performance */
+                    usage: TextureUsages::RENDER_ATTACHMENT,
                 },
-                mip_level_count: 1,
-                sample_count: msaa.samples,
-                dimension: TextureDimension::D2,
-                format: TextureFormat::Depth32Float, /* PERF: vulkan docs recommend using 24
-                                                      * bit depth for better performance */
-                usage: TextureUsages::RENDER_ATTACHMENT,
-            },
-        );
+            )
+        };
+        let cached_texture = if let Some(camera) = camera {
+            textures
+                .entry(camera.target.clone())
+                .or_insert_with(get_cached_texture)
+                .clone()
+        } else {
+            get_cached_texture()
+        };
         commands.entity(entity).insert(ViewDepthTexture {
             texture: cached_texture.texture,
             view: cached_texture.default_view,

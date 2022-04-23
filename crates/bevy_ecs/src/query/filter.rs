@@ -11,6 +11,9 @@ use std::{cell::UnsafeCell, marker::PhantomData, ptr};
 
 /// Extension trait for [`Fetch`] containing methods used by query filters.
 /// This trait exists to allow "short circuit" behaviors for relevant query filter fetches.
+///
+/// This trait is automatically implemented for every type that implements [`Fetch`] trait and
+/// specifies `bool` as the associated type for [`Fetch::Item`].
 pub trait FilterFetch: for<'w, 's> Fetch<'w, 's> {
     /// # Safety
     ///
@@ -65,7 +68,7 @@ where
 ///         println!("{} is looking lovely today!", name.name);
 ///     }
 /// }
-/// # compliment_entity_system.system();
+/// # bevy_ecs::system::assert_is_system(compliment_entity_system);
 /// ```
 pub struct With<T>(PhantomData<T>);
 
@@ -76,11 +79,13 @@ impl<T: Component> WorldQuery for With<T> {
 }
 
 /// The [`Fetch`] of [`With`].
+#[doc(hidden)]
 pub struct WithFetch<T> {
     marker: PhantomData<T>,
 }
 
 /// The [`FetchState`] of [`With`].
+#[doc(hidden)]
 pub struct WithState<T> {
     component_id: ComponentId,
     marker: PhantomData<T>,
@@ -166,6 +171,16 @@ impl<'w, 's, T: Component> Fetch<'w, 's> for WithFetch<T> {
 // SAFETY: no component access or archetype component access
 unsafe impl<T> ReadOnlyFetch for WithFetch<T> {}
 
+impl<T> Clone for WithFetch<T> {
+    fn clone(&self) -> Self {
+        Self {
+            marker: self.marker,
+        }
+    }
+}
+
+impl<T> Copy for WithFetch<T> {}
+
 /// Filter that selects entities without a component `T`.
 ///
 /// This is the negation of [`With`].
@@ -188,7 +203,7 @@ unsafe impl<T> ReadOnlyFetch for WithFetch<T> {}
 ///         println!("{} has no permit!", name.name);
 ///     }
 /// }
-/// # no_permit_system.system();
+/// # bevy_ecs::system::assert_is_system(no_permit_system);
 /// ```
 pub struct Without<T>(PhantomData<T>);
 
@@ -199,11 +214,13 @@ impl<T: Component> WorldQuery for Without<T> {
 }
 
 /// The [`Fetch`] of [`Without`].
+#[doc(hidden)]
 pub struct WithoutFetch<T> {
     marker: PhantomData<T>,
 }
 
 /// The [`FetchState`] of [`Without`].
+#[doc(hidden)]
 pub struct WithoutState<T> {
     component_id: ComponentId,
     marker: PhantomData<T>,
@@ -289,6 +306,16 @@ impl<'w, 's, T: Component> Fetch<'w, 's> for WithoutFetch<T> {
 // SAFETY: no component access or archetype component access
 unsafe impl<T> ReadOnlyFetch for WithoutFetch<T> {}
 
+impl<T> Clone for WithoutFetch<T> {
+    fn clone(&self) -> Self {
+        Self {
+            marker: self.marker,
+        }
+    }
+}
+
+impl<T> Copy for WithoutFetch<T> {}
+
 /// A filter that tests if any of the given filters apply.
 ///
 /// This is useful for example if a system with multiple components in a query only wants to run
@@ -317,11 +344,14 @@ unsafe impl<T> ReadOnlyFetch for WithoutFetch<T> {}
 ///         println!("Entity {:?} got a new style or color", entity);
 ///     }
 /// }
-/// # print_cool_entity_system.system();
+/// # bevy_ecs::system::assert_is_system(print_cool_entity_system);
 /// ```
+#[derive(Clone, Copy)]
 pub struct Or<T>(pub T);
 
 /// The [`Fetch`] of [`Or`].
+#[derive(Clone, Copy)]
+#[doc(hidden)]
 pub struct OrFetch<T: FilterFetch> {
     fetch: T,
     matches: bool,
@@ -455,6 +485,7 @@ macro_rules! impl_tick_filter {
         $(#[$meta])*
         pub struct $name<T>(PhantomData<T>);
 
+        #[doc(hidden)]
         $(#[$fetch_meta])*
         pub struct $fetch_name<T> {
             table_ticks: *const UnsafeCell<ComponentTicks>,
@@ -466,6 +497,7 @@ macro_rules! impl_tick_filter {
             change_tick: u32,
         }
 
+        #[doc(hidden)]
         $(#[$state_meta])*
         pub struct $state_name<T> {
             component_id: ComponentId,
@@ -586,6 +618,22 @@ macro_rules! impl_tick_filter {
 
         /// SAFETY: read-only access
         unsafe impl<T: Component> ReadOnlyFetch for $fetch_name<T> {}
+
+        impl<T> Clone for $fetch_name<T> {
+            fn clone(&self) -> Self {
+                Self {
+                    table_ticks: self.table_ticks.clone(),
+                    entity_table_rows: self.entity_table_rows.clone(),
+                    marker: self.marker.clone(),
+                    entities: self.entities.clone(),
+                    sparse_set: self.sparse_set.clone(),
+                    last_change_tick: self.last_change_tick.clone(),
+                    change_tick: self.change_tick.clone(),
+                }
+            }
+        }
+
+        impl<T> Copy for $fetch_name<T> {}
     };
 }
 
@@ -619,7 +667,7 @@ impl_tick_filter!(
     ///     }
     /// }
     ///
-    /// # print_add_name_component.system();
+    /// # bevy_ecs::system::assert_is_system(print_add_name_component);
     /// ```
     Added,
     /// The [`FetchState`] of [`Added`].
@@ -662,7 +710,7 @@ impl_tick_filter!(
     ///     }
     /// }
     ///
-    /// # print_moving_objects_system.system();
+    /// # bevy_ecs::system::assert_is_system(print_moving_objects_system);
     /// ```
     Changed,
     /// The [`FetchState`] of [`Changed`].
