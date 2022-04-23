@@ -1,5 +1,7 @@
 mod camera;
 mod conversion;
+use bevy_core_pipeline::{CameraLeftEye, CameraRightEye};
+use bevy_hierarchy::BuildWorldChildren;
 use camera::{XRCameraBundle, XRProjection};
 use conversion::*;
 mod interaction;
@@ -12,8 +14,8 @@ use ash::vk::Handle;
 use bevy_math::{Quat, UVec2, Vec3};
 use bevy_render::{
     camera::{
-        camera_system, ActiveCameras, Camera, CameraProjection, ManualTextureViews,
-        PerspectiveCameraBundle, PerspectiveProjection, RenderTarget,
+        camera_system, Camera, CameraProjection, ManualTextureViews, PerspectiveCameraBundle,
+        PerspectiveProjection, RenderTarget,
     },
     prelude::{Color, Msaa},
     primitives::Frustum,
@@ -21,17 +23,18 @@ use bevy_render::{
 };
 use bevy_transform::{
     components::{GlobalTransform, Transform},
-    hierarchy::BuildWorldChildren,
     TransformSystem,
 };
 use bevy_utils::Uuid;
 pub use interaction::*;
 
-use bevy_app::{App, AppExit, CoreStage, Events, ManualEventReader, Plugin};
+use bevy_app::{App, AppExit, CoreStage, Plugin};
 use bevy_ecs::{
+    entity::Entity,
+    event::{Events, ManualEventReader},
     prelude::{Bundle, Component, Without},
     schedule::{ParallelSystemDescriptorCoercion, Schedule},
-    system::{IntoSystem, Query, Res, System},
+    system::{Commands, IntoSystem, Query, Res, System},
     world::EntityMut,
 };
 use bevy_xr::{
@@ -91,7 +94,7 @@ impl Drop for OpenXrSession {
 
 #[derive(Debug)]
 pub enum OpenXrError {
-    #[cfg(target_os = "android")]
+    #[cfg(any(target_os = "android", target_os = "macos"))]
     Loader(xr::LoadError),
     InstanceCreation(sys::Result),
     UnsupportedFormFactor,
@@ -164,9 +167,9 @@ pub struct OpenXrContext {
 
 impl OpenXrContext {
     fn new(form_factor: OpenXrFormFactor) -> Result<Self, OpenXrError> {
-        #[cfg(target_os = "android")]
+        #[cfg(any(target_os = "android", target_os = "macos"))]
         let entry = xr::Entry::load().map_err(OpenXrError::Loader)?;
-        #[cfg(not(target_os = "android"))]
+        #[cfg(not(any(target_os = "android", target_os = "macos")))]
         let entry = xr::Entry::linked();
 
         #[cfg(target_os = "android")]
@@ -469,11 +472,6 @@ fn runner(mut app: App) {
     let left_id = Uuid::new_v4();
     let right_id = Uuid::new_v4();
     XrCameras::spawn(app.world.spawn(), left_id, right_id);
-    {
-        let mut active_cameras = app.world.get_resource_mut::<ActiveCameras>().unwrap();
-        active_cameras.add("left_eye");
-        active_cameras.add("right_eye");
-    }
     app.add_system_to_stage(CoreStage::PreUpdate, update_xrcamera_view);
 
     let clear_color_default = Color::rgb(0.4, 0.4, 0.4);
@@ -742,20 +740,20 @@ impl XrCameras {
             parent
                 .spawn_bundle(XRCameraBundle {
                     camera: Camera {
-                        name: Some("left_eye".into()),
                         target: RenderTarget::TextureView(left_id),
                         ..Default::default()
                     },
+                    marker: CameraLeftEye,
                     ..Default::default()
                 })
                 .insert(Eye::Left);
             parent
                 .spawn_bundle(XRCameraBundle {
                     camera: Camera {
-                        name: Some("right_eye".into()),
                         target: RenderTarget::TextureView(right_id),
                         ..Default::default()
                     },
+                    marker: CameraRightEye,
                     ..Default::default()
                 })
                 .insert(Eye::Right);

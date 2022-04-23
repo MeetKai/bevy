@@ -11,13 +11,14 @@ use bevy_transform::components::{GlobalTransform, Transform};
 use openxr::Fovf;
 
 #[derive(Bundle, Default)]
-pub struct XRCameraBundle {
+pub struct XRCameraBundle<M: Component> {
     pub camera: Camera,
     pub xr_projection: XRProjection,
     pub visible_entities: VisibleEntities,
     pub transform: Transform,
     pub global_transform: GlobalTransform,
     pub frustum: Frustum,
+    pub marker: M,
 }
 
 #[derive(Debug, Clone, Component, Reflect)]

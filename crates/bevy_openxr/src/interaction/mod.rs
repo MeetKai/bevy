@@ -1,10 +1,10 @@
 mod tracking;
 
+use bevy_ecs::event::{Events, ManualEventReader};
 use bevy_math::Vec2;
 pub use tracking::*;
 
 use crate::{conversion::from_duration, OpenXrSession};
-use bevy_app::{Events, ManualEventReader};
 use bevy_xr::{
     XrActionSet, XrActionState, XrActionType, XrButtonState, XrHandType, XrProfileDescriptor,
     XrVibrationEvent, XrVibrationEventType,
