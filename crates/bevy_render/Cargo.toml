@@ -31,11 +31,15 @@ webgl = ["wgpu/webgl"]
 bevy_app = { path = "../bevy_app", version = "0.8.0-dev" }
 bevy_asset = { path = "../bevy_asset", version = "0.8.0-dev" }
 bevy_core = { path = "../bevy_core", version = "0.8.0-dev" }
-bevy_crevice = { path = "../bevy_crevice", version = "0.8.0-dev", features = ["glam"] }
+bevy_crevice = { path = "../bevy_crevice", version = "0.8.0-dev", features = [
+    "glam",
+] }
 bevy_derive = { path = "../bevy_derive", version = "0.8.0-dev" }
 bevy_ecs = { path = "../bevy_ecs", version = "0.8.0-dev" }
 bevy_math = { path = "../bevy_math", version = "0.8.0-dev" }
-bevy_reflect = { path = "../bevy_reflect", version = "0.8.0-dev", features = ["bevy"] }
+bevy_reflect = { path = "../bevy_reflect", version = "0.8.0-dev", features = [
+    "bevy",
+] }
 bevy_transform = { path = "../bevy_transform", version = "0.8.0-dev" }
 bevy_window = { path = "../bevy_window", version = "0.8.0-dev" }
 bevy_utils = { path = "../bevy_utils", version = "0.8.0-dev" }
@@ -45,9 +49,17 @@ bevy_xr = { path = "../bevy_xr", version = "0.8.0-dev" }
 image = { version = "0.23.12", default-features = false }
 
 # misc
-wgpu = { version = "0.12.0", features = ["spirv"] }
+wgpu = { version = "0.12.0", features = [
+    "spirv",
+], git = "https://github.com/gfx-rs/wgpu" }
 codespan-reporting = "0.11.0"
-naga = { version = "0.8.0", features = ["glsl-in", "spv-in", "spv-out", "wgsl-in", "wgsl-out"] }
+naga = { version = "0.8.0", features = [
+    "glsl-in",
+    "spv-in",
+    "spv-out",
+    "wgsl-in",
+    "wgsl-out",
+] }
 serde = { version = "1", features = ["derive"] }
 bitflags = "1.2.1"
 smallvec = { version = "1.6", features = ["union", "const_generics"] }

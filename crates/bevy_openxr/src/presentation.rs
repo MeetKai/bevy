@@ -26,7 +26,7 @@ pub fn create_graphics_context(
     let device_descriptor = wgpu::DeviceDescriptor::default();
 
     if instance.exts().khr_vulkan_enable2.is_some() {
-        let vk_entry = unsafe { ash::Entry::new() };
+        let vk_entry = unsafe { ash::Entry::load().unwrap() };
 
         // Vulkan 1.0 constrained by Oculus Go support.
         // NOTE: multiview support will require Vulkan 1.1 or specific extensions
