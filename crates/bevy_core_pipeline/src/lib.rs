@@ -20,7 +20,6 @@ pub use main_pass_driver::*;
 use std::ops::Range;
 
 use bevy_app::{App, Plugin};
-use bevy_core::FloatOrd;
 use bevy_ecs::prelude::*;
 use bevy_reflect::Reflect;
 use bevy_render::{
@@ -37,6 +36,7 @@ use bevy_render::{
     view::{ExtractedView, Msaa, ViewDepthTexture},
     RenderApp, RenderStage, RenderWorld,
 };
+use bevy_utils::FloatOrd;
 
 /// When used as a resource, sets the color that is used to clear the screen between frames.
 ///

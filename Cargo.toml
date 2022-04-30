@@ -396,6 +396,10 @@ name = "system_chaining"
 path = "examples/ecs/system_chaining.rs"
 
 [[example]]
+name = "system_closure"
+path = "examples/ecs/system_closure.rs"
+
+[[example]]
 name = "system_param"
 path = "examples/ecs/system_param.rs"
 
@@ -630,6 +634,15 @@ name = "vr_cubes_android"
 path = "examples/xr/vr_cubes.rs"
 required-features = ["bevy_openxr"]
 crate-type = ["cdylib"]
+
+[[example]]
+name = "resizing"
+path = "tests/window/resizing.rs"
+
+[[example]]
+name = "minimising"
+path = "tests/window/minimising.rs"
+
 
 # Android
 [[example]]
