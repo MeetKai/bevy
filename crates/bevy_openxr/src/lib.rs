@@ -14,8 +14,8 @@ use ash::vk::Handle;
 use bevy_math::{Quat, UVec2, Vec3};
 use bevy_render::{
     camera::{
-        camera_system, Camera, CameraProjection, ManualTextureViews, PerspectiveCameraBundle,
-        PerspectiveProjection, RenderTarget,
+        camera_system, ActiveCamera, Camera, CameraProjection, ManualTextureViews,
+        PerspectiveCameraBundle, PerspectiveProjection, RenderTarget,
     },
     prelude::{Color, Msaa},
     primitives::Frustum,
@@ -32,7 +32,7 @@ use bevy_app::{App, AppExit, CoreStage, Plugin};
 use bevy_ecs::{
     entity::Entity,
     event::{Events, ManualEventReader},
-    prelude::{Bundle, Component, Without},
+    prelude::{Bundle, Component, Without, World},
     schedule::{ParallelSystemDescriptorCoercion, Schedule},
     system::{Commands, IntoSystem, Query, Res, System},
     world::EntityMut,
@@ -736,8 +736,9 @@ pub enum Eye {
 
 impl XrCameras {
     pub fn spawn(mut e: EntityMut, left_id: Uuid, right_id: Uuid) {
+        let (mut left_out, mut right_out) = (None, None);
         e.with_children(|parent| {
-            parent
+            let left = parent
                 .spawn_bundle(XRCameraBundle {
                     camera: Camera {
                         target: RenderTarget::TextureView(left_id),
@@ -746,8 +747,9 @@ impl XrCameras {
                     marker: CameraLeftEye,
                     ..Default::default()
                 })
-                .insert(Eye::Left);
-            parent
+                .insert(Eye::Left)
+                .id();
+            let right = parent
                 .spawn_bundle(XRCameraBundle {
                     camera: Camera {
                         target: RenderTarget::TextureView(right_id),
@@ -756,11 +758,22 @@ impl XrCameras {
                     marker: CameraRightEye,
                     ..Default::default()
                 })
-                .insert(Eye::Right);
+                .insert(Eye::Right)
+                .id();
+
+            let _ = left_out.insert(left);
+            let _ = right_out.insert(right);
         })
         .insert(Transform::default())
         .insert(GlobalTransform::default())
         .insert(Self {});
+
+        let mut active_left = ActiveCamera::<CameraLeftEye>::default();
+        active_left.set(left_out.unwrap());
+        unsafe { e.world_mut() }.insert_resource(active_left);
+        let mut active_right = ActiveCamera::<CameraLeftEye>::default();
+        active_right.set(right_out.unwrap());
+        unsafe { e.world_mut() }.insert_resource(active_right);
     }
 }
 
