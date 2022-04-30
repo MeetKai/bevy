@@ -87,7 +87,13 @@ impl RenderTarget {
             RenderTarget::Image(image_handle) => {
                 images.get(image_handle).map(|image| &image.texture_view)
             }
-            RenderTarget::TextureView(id) => manual_texture_views.get(id).map(|(tex, _)| tex),
+            RenderTarget::TextureView(id) => manual_texture_views
+                .get(id)
+                .map(|(tex, _)| tex)
+                .or_else(|| {
+                    dbg!("no tex view!");
+                    None
+                }),
         }
     }
     pub fn get_physical_size(
@@ -104,7 +110,13 @@ impl RenderTarget {
                 let Extent3d { width, height, .. } = image.texture_descriptor.size;
                 UVec2::new(width, height)
             }),
-            RenderTarget::TextureView(id) => manual_texture_views.get(id).map(|(_, size)| *size),
+            RenderTarget::TextureView(id) => manual_texture_views
+                .get(id)
+                .map(|(_, size)| *size)
+                .or_else(|| {
+                    dbg!("no tex view!");
+                    None
+                }),
         }
     }
     pub fn get_logical_size(
@@ -124,7 +136,11 @@ impl RenderTarget {
             RenderTarget::TextureView(id) => manual_texture_views
                 .deref()
                 .get(id)
-                .map(|(_, size)| Vec2::new(size.x as f32, size.y as f32)),
+                .map(|(_, size)| Vec2::new(size.x as f32, size.y as f32))
+                .or_else(|| {
+                    dbg!("no tex view!");
+                    None
+                }),
         }
     }
     // Check if this render target is contained in the given changed windows or images.
@@ -354,6 +370,7 @@ pub fn extract_cameras<M: Component + Default>(
                     .target
                     .get_physical_size(&windows, &images, &manual_texture_views)
             {
+                dbg!(size);
                 commands.get_or_spawn(entity).insert_bundle((
                     ExtractedCamera {
                         target: camera.target.clone(),

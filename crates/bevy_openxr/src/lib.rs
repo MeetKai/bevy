@@ -1,6 +1,5 @@
 mod camera;
 mod conversion;
-use bevy_core_pipeline::{CameraLeftEye, CameraRightEye};
 use bevy_hierarchy::BuildWorldChildren;
 use camera::{XRCameraBundle, XRProjection};
 use conversion::*;
@@ -14,7 +13,7 @@ use ash::vk::Handle;
 use bevy_math::{Quat, UVec2, Vec3};
 use bevy_render::{
     camera::{
-        camera_system, ActiveCamera, Camera, CameraProjection, ManualTextureViews,
+        camera_system, ActiveCamera, Camera, Camera3d, CameraProjection, ManualTextureViews,
         PerspectiveCameraBundle, PerspectiveProjection, RenderTarget,
     },
     prelude::{Color, Msaa},
@@ -736,7 +735,6 @@ pub enum Eye {
 
 impl XrCameras {
     pub fn spawn(mut e: EntityMut, left_id: Uuid, right_id: Uuid) {
-        let (mut left_out, mut right_out) = (None, None);
         e.with_children(|parent| {
             let left = parent
                 .spawn_bundle(XRCameraBundle {
@@ -744,7 +742,7 @@ impl XrCameras {
                         target: RenderTarget::TextureView(left_id),
                         ..Default::default()
                     },
-                    marker: CameraLeftEye,
+                    marker: Camera3d,
                     ..Default::default()
                 })
                 .insert(Eye::Left)
@@ -755,25 +753,15 @@ impl XrCameras {
                         target: RenderTarget::TextureView(right_id),
                         ..Default::default()
                     },
-                    marker: CameraRightEye,
+                    marker: Camera3d,
                     ..Default::default()
                 })
                 .insert(Eye::Right)
                 .id();
-
-            let _ = left_out.insert(left);
-            let _ = right_out.insert(right);
         })
         .insert(Transform::default())
         .insert(GlobalTransform::default())
         .insert(Self {});
-
-        let mut active_left = ActiveCamera::<CameraLeftEye>::default();
-        active_left.set(left_out.unwrap());
-        unsafe { e.world_mut() }.insert_resource(active_left);
-        let mut active_right = ActiveCamera::<CameraLeftEye>::default();
-        active_right.set(right_out.unwrap());
-        unsafe { e.world_mut() }.insert_resource(active_right);
     }
 }
 

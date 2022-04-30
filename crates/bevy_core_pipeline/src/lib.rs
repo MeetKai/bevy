@@ -387,20 +387,11 @@ pub fn extract_clear_color(
 }
 
 //  TODO: use is_active camera component to generically handle cameras being active, as jacob mentioned in his commit message, then we can remove these marker types?
-#[derive(Component, Default, Reflect)]
-#[reflect(Component)]
-pub struct CameraLeftEye;
-
-#[derive(Component, Default, Reflect)]
-#[reflect(Component)]
-pub struct CameraRightEye;
 
 pub fn extract_core_pipeline_camera_phases(
     mut commands: Commands,
     active_2d: Res<ActiveCamera<Camera2d>>,
     active_3d: Res<ActiveCamera<Camera3d>>,
-    active_left_eye: Option<Res<ActiveCamera<CameraLeftEye>>>,
-    active_right_eye: Option<Res<ActiveCamera<CameraRightEye>>>,
 ) {
     if let Some(entity) = active_2d.get() {
         commands
@@ -413,20 +404,6 @@ pub fn extract_core_pipeline_camera_phases(
             RenderPhase::<AlphaMask3d>::default(),
             RenderPhase::<Transparent3d>::default(),
         ));
-    }
-
-    let (left, right) = (
-        active_left_eye.map(|res| res.get()).flatten(),
-        active_right_eye.map(|res| res.get()).flatten(),
-    );
-    for cam in [left, right] {
-        if let Some(entity) = cam {
-            commands.get_or_spawn(entity).insert_bundle((
-                RenderPhase::<Opaque3d>::default(),
-                RenderPhase::<AlphaMask3d>::default(),
-                RenderPhase::<Transparent3d>::default(),
-            ));
-        }
     }
 }
 
@@ -446,6 +423,7 @@ pub fn prepare_core_views_system(
 ) {
     let mut textures = HashMap::default();
     for (entity, view, camera) in views_3d.iter() {
+        dbg!((view.width, view.height));
         let mut get_cached_texture = || {
             texture_cache.get(
                 &render_device,

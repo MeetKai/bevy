@@ -484,6 +484,8 @@ impl MeshPipeline {
             let gpu_image = gpu_images.get(handle)?;
             Some((&gpu_image.texture_view, &gpu_image.sampler))
         } else {
+            dbg!("falling back to dummy");
+            dbg!(backtrace::Backtrace::new());
             Some((
                 &self.dummy_white_gpu_image.texture_view,
                 &self.dummy_white_gpu_image.sampler,
