@@ -45,8 +45,8 @@ pub fn predict_pose(
         return None;
     }
 
-    let linear_velocity = velocity.linear_velocity.to_vec3();
-    let angular_velocity = velocity.angular_velocity.to_vec3();
+    let linear_velocity = velocity.linear_velocity.map(|v| v.to_vec3());
+    let angular_velocity = velocity.angular_velocity.map(|v| v.to_vec3());
 
     Some(XrPose {
         transform: openxr_pose_to_corrected_rigid_transform(
@@ -54,8 +54,8 @@ pub fn predict_pose(
             reference,
             prediction_time,
         ),
-        linear_velocity: Some(linear_velocity),
-        angular_velocity: Some(angular_velocity),
+        linear_velocity,
+        angular_velocity,
         emulated_position: location
             .location_flags
             .contains(xr::SpaceLocationFlags::POSITION_TRACKED),
