@@ -8,7 +8,6 @@ pub use camera::*;
 pub use projection::*;
 
 use crate::{
-    prelude::Image,
     primitives::Aabb,
     view::{ComputedVisibility, Visibility, VisibleEntities},
 };

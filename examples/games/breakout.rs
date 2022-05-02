@@ -56,7 +56,7 @@ fn main() {
     App::new()
         .add_plugins(DefaultPlugins)
         .insert_resource(Scoreboard { score: 0 })
-        .insert_resource(ClearColor::from_default_color(BACKGROUND_COLOR))
+        .insert_resource(ClearColor(BACKGROUND_COLOR))
         .add_startup_system(setup)
         .add_event::<CollisionEvent>()
         .add_system_set(

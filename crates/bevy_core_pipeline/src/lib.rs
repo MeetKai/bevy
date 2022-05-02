@@ -21,7 +21,6 @@ use std::ops::Range;
 
 use bevy_app::{App, Plugin};
 use bevy_ecs::prelude::*;
-use bevy_reflect::Reflect;
 use bevy_render::{
     camera::{ActiveCamera, Camera2d, Camera3d, ExtractedCamera, RenderTarget},
     color::Color,
@@ -43,31 +42,11 @@ use bevy_utils::FloatOrd;
 /// This color appears as the "background" color for simple apps, when
 /// there are portions of the screen with nothing rendered.
 #[derive(Clone, Debug)]
-pub struct ClearColor {
-    /// The color used for any target not specified in `per_target`
-    pub default_color: Color,
-    /// Map of colors to clear each given `RenderTarget`.
-    pub per_target: HashMap<RenderTarget, Color>,
-}
-
-impl ClearColor {
-    pub fn from_default_color(default_color: Color) -> Self {
-        Self {
-            default_color,
-            per_target: HashMap::default(),
-        }
-    }
-    pub fn get(&self, target: &RenderTarget) -> &Color {
-        self.per_target.get(target).unwrap_or(&self.default_color)
-    }
-    pub fn insert(&mut self, target: RenderTarget, color: Color) {
-        self.per_target.insert(target, color);
-    }
-}
+pub struct ClearColor(pub Color);
 
 impl Default for ClearColor {
     fn default() -> Self {
-        Self::from_default_color(Color::rgb(0.4, 0.4, 0.4))
+        Self(Color::rgb(0.4, 0.4, 0.4))
     }
 }
 

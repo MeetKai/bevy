@@ -59,7 +59,7 @@ impl Node for ClearPassNode {
         // clearing happen on "render targets" instead of "views" (see the TODO below for more context).
         for (target, depth, camera) in self.query.iter_manual(world) {
             dbg!("clear 1");
-            let mut color = &clear_color.default_color;
+            let mut color = &clear_color.0;
             if let Some(camera) = camera {
                 cleared_targets.insert(&camera.target);
                 if let Some(target_color) = render_target_clear_colors.get(&camera.target) {
@@ -114,7 +114,7 @@ impl Node for ClearPassNode {
                         load: LoadOp::Clear(
                             (*render_target_clear_colors
                                 .get(&target)
-                                .unwrap_or(&clear_color.default_color))
+                                .unwrap_or(&clear_color.0))
                             .into(),
                         ),
                         store: true,
