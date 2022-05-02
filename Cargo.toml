@@ -685,3 +685,7 @@ categories = [
   "android.intent.category.LAUNCHER",
   "android.intent.category.INFO",
 ]
+
+[patch."https://github.com/Ralith/openxrs"]
+openxr_sys = { package = "openxr-sys", path = "../openxrs/sys" }
+openxr = { path = "../openxrs/openxr" }

@@ -53,5 +53,5 @@ openxr = { git = "https://github.com/Ralith/openxrs", default-features = false, 
 
 [target.'cfg(target_os = "macos")'.dependencies]
 openxr = { git = "https://github.com/Ralith/openxrs", default-features = false, features = [
-    "loaded",
+    "static",
 ] }

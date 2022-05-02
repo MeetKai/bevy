@@ -1,8 +1,13 @@
-use ash::vk::{self, Handle};
+use ash::vk::{self, Handle, InstanceCreateFlags};
 use bevy_xr::presentation::XrGraphicsContext;
 use openxr as xr;
-use std::{error::Error, ffi::CString, sync::Arc};
+use std::{
+    error::Error,
+    ffi::{CStr, CString},
+    sync::Arc,
+};
 use wgpu_hal as hal;
+use xr::sys::{platform::VkInstanceCreateInfo, InstanceCreateInfo, VulkanInstanceCreateInfoKHR};
 
 #[derive(Clone)]
 pub enum GraphicsContextHandles {
@@ -48,23 +53,38 @@ pub fn create_graphics_context(
             flags |= hal::InstanceFlags::DEBUG;
         }
 
-        let instance_extensions =
+        let mut instance_extensions =
             <hal::api::Vulkan as hal::Api>::Instance::required_extensions(&vk_entry, flags)
                 .map_err(Box::new)?;
+        instance_extensions
+            .push(CStr::from_bytes_with_nul(b"VK_KHR_portability_enumeration\0").unwrap());
+        dbg!(&instance_extensions);
         let instance_extensions_ptrs = instance_extensions
             .iter()
             .map(|x| x.as_ptr())
             .collect::<Vec<_>>();
+
+        dbg!(&instance_extensions_ptrs);
+
+        let create_info = vk::InstanceCreateInfo::builder()
+            .application_info(&vk_app_info)
+            .enabled_extension_names(&instance_extensions_ptrs)
+            .flags(InstanceCreateFlags::ENUMERATE_PORTABILITY_KHR)
+            .build();
+
+        dbg!(&create_info);
+        dbg!(&create_info as *const _);
+
+        // let create_info = VulkanInstanceCreateInfoKHR {
+        //     create_flags: create_info.flags,
+        // };
 
         let vk_instance = unsafe {
             let vk_instance = instance
                 .create_vulkan_instance(
                     system,
                     std::mem::transmute(vk_entry.static_fn().get_instance_proc_addr),
-                    &vk::InstanceCreateInfo::builder()
-                        .application_info(&vk_app_info)
-                        .enabled_extension_names(&instance_extensions_ptrs)
-                        as *const _ as *const _,
+                    &create_info as *const vk::InstanceCreateInfo as *const VkInstanceCreateInfo,
                 )
                 .map_err(Box::new)?
                 .map_err(|e| Box::new(vk::Result::from_raw(e)))?;
