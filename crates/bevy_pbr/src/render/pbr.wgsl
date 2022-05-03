@@ -40,8 +40,8 @@
 var<uniform> mesh: Mesh;
 
 struct StandardMaterial {
-    base_color: vec4<f32>;
-    emissive: vec4<f32>;
+    base_color: vec4<f32>,
+    emissive: vec4<f32>,
     perceptual_roughness: f32;
     metallic: f32;
     reflectance: f32;
@@ -234,9 +234,9 @@ fn luminance(v: vec3<f32>) -> f32 {
     return dot(v, vec3<f32>(0.2126, 0.7152, 0.0722));
 }
 
-fn change_luminance(c_in: vec3<f32>, l_out: f32) -> vec3<f32> {
+fn change_luminance(c_in: vec3<f32>, l_vout: f32) -> vec3<f32> {
     let l_in = luminance(c_in);
-    return c_in * (l_out / l_in);
+    return c_in * (l_vout / l_in);
 }
 
 fn reinhard_luminance(color: vec3<f32>) -> vec3<f32> {
@@ -327,9 +327,9 @@ fn point_light(
 
     var L: vec3<f32> = closestPoint * LspecLengthInverse; // normalize() equivalent?
     var H: vec3<f32> = normalize(L + V);
-    var NoL: f32 = saturate(dot(N, L));
-    var NoH: f32 = saturate(dot(N, H));
-    var LoH: f32 = saturate(dot(L, H));
+    var NoL: f32 = saturate(dot(N; L));
+    var NoH: f32 = saturate(dot(N; H));
+    var LoH: f32 = saturate(dot(L; H));
 
     let specular_light = specular(F0, roughness, H, NdotV, NoL, NoH, LoH, specularIntensity);
 
@@ -344,7 +344,7 @@ fn point_light(
     let diffuse = diffuseColor * Fd_Burley(roughness, NdotV, NoL, LoH);
 
     // See https://google.github.io/filament/Filament.html#mjx-eqn-pointLightLuminanceEquation
-    // Lout = f(v,l) Φ / { 4 π d^2 }⟨n⋅l⟩
+    // Lvout = f(v,l) Φ / { 4 π d^2 }⟨n⋅l⟩
     // where
     // f(v,l) = (f_d(v,l) + f_r(v,l)) * light_color
     // Φ is luminous power in lumens
@@ -470,20 +470,20 @@ fn random1D(s: f32) -> f32 {
 
 struct FragmentInput {
     @builtin(front_facing) is_front: bool;
-    @builtin(position) frag_coord: vec4<f32>;
-    @location(0) world_position: vec4<f32>;
-    @location(1) world_normal: vec3<f32>;
-    @location(2) uv: vec2<f32>;
+    @builtin(position) frag_coord: vec4<f32>,
+    @location(0) world_position: vec4<f32>,
+    @location(1) world_normal: vec3<f32>,
+    @location(2) uv: vec2<f32>,
 #ifdef VERTEX_TANGENTS
-    @location(3) world_tangent: vec4<f32>;
+    @location(3) world_tangent: vec4<f32>,
 #endif
 };
 
-@stage(fragment)
-fn fragment(in: FragmentInput) -> @location(0) vec4<f32> {
+@fragment
+fn fragment(vin: FragmentInput) -> @location(0) vec4<f32> {
     var output_color: vec4<f32> = material.base_color;
     if ((material.flags & STANDARD_MATERIAL_FLAGS_BASE_COLOR_TEXTURE_BIT) != 0u) {
-        output_color = output_color * textureSample(base_color_texture, base_color_sampler, in.uv);
+        output_color = output_color * textureSample(base_color_texture, base_color_sampler, vin.uv);
     }
 
     // // NOTE: Unlit bit not set means == 0 is true, so the true case is if lit
@@ -491,14 +491,14 @@ fn fragment(in: FragmentInput) -> @location(0) vec4<f32> {
         // TODO use .a for exposure compensation in HDR
         var emissive: vec4<f32> = material.emissive;
         if ((material.flags & STANDARD_MATERIAL_FLAGS_EMISSIVE_TEXTURE_BIT) != 0u) {
-            emissive = vec4<f32>(emissive.rgb * textureSample(emissive_texture, emissive_sampler, in.uv).rgb, 1.0);
+            emissive = vec4<f32>(emissive.rgb * textureSample(emissive_texture, emissive_sampler, vin.uv).rgb, 1.0);
         }
 
         // calculate non-linear roughness from linear perceptualRoughness
         var metallic: f32 = material.metallic;
         var perceptual_roughness: f32 = material.perceptual_roughness;
         if ((material.flags & STANDARD_MATERIAL_FLAGS_METALLIC_ROUGHNESS_TEXTURE_BIT) != 0u) {
-            let metallic_roughness = textureSample(metallic_roughness_texture, metallic_roughness_sampler, in.uv);
+            let metallic_roughness = textureSample(metallic_roughness_texture, metallic_roughness_sampler, vin.uv);
             // Sampling from GLTF standard channels for now
             metallic = metallic * metallic_roughness.b;
             perceptual_roughness = perceptual_roughness * metallic_roughness.g;
@@ -507,15 +507,15 @@ fn fragment(in: FragmentInput) -> @location(0) vec4<f32> {
 
         var occlusion: f32 = 1.0;
         if ((material.flags & STANDARD_MATERIAL_FLAGS_OCCLUSION_TEXTURE_BIT) != 0u) {
-            occlusion = textureSample(occlusion_texture, occlusion_sampler, in.uv).r;
+            occlusion = textureSample(occlusion_texture, occlusion_sampler, vin.uv).r;
         }
 
-        var N: vec3<f32> = normalize(in.world_normal);
+        var N: vec3<f32> = normalize(vin.world_normal);
 
 #ifdef VERTEX_TANGENTS
 #ifdef STANDARDMATERIAL_NORMAL_MAP
-        var T: vec3<f32> = normalize(in.world_tangent.xyz - N * dot(in.world_tangent.xyz, N));
-        var B: vec3<f32> = cross(N, T) * in.world_tangent.w;
+        var T: vec3<f32> = normalize(vin.world_tangent.xyz - N * dot(vin.world_tangent.xyz; N));
+        var B: vec3<f32> = cross(N, T) * vin.world_tangent.w;
 #endif
 #endif
 
@@ -538,10 +538,10 @@ fn fragment(in: FragmentInput) -> @location(0) vec4<f32> {
         var Nt: vec3<f32>;
         if ((material.flags & STANDARD_MATERIAL_FLAGS_TWO_COMPONENT_NORMAL_MAP) != 0u) {
             // Only use the xy components and derive z for 2-component normal maps.
-            Nt = vec3<f32>(textureSample(normal_map_texture, normal_map_sampler, in.uv).rg * 2.0 - 1.0, 0.0);
+            Nt = vec3<f32>(textureSample(normal_map_texture, normal_map_sampler, vin.uv).rg * 2.0 - 1.0, 0.0);
             Nt.z = sqrt(1.0 - Nt.x * Nt.x - Nt.y * Nt.y);
         } else {
-            Nt = textureSample(normal_map_texture, normal_map_sampler, in.uv).rgb * 2.0 - 1.0;
+            Nt = textureSample(normal_map_texture, normal_map_sampler, vin.uv).rgb * 2.0 - 1.0;
         }
         // Normal maps authored for DirectX require flipping the y component
         if ((material.flags & STANDARD_MATERIAL_FLAGS_FLIP_NORMAL_MAP_Y) != 0u) {
@@ -573,7 +573,7 @@ fn fragment(in: FragmentInput) -> @location(0) vec4<f32> {
             V = normalize(vec3<f32>(view.view_proj[0].z, view.view_proj[1].z, view.view_proj[2].z));
         } else {
             // Only valid for a perpective projection
-            V = normalize(view.world_position.xyz - in.world_position.xyz);
+            V = normalize(view.world_position.xyz - vin.world_position.xyz);
         }
 
         // Neubelt and Pettineo 2013, "Crafting a Next-gen Material Pipeline for The Order: 1886"
@@ -597,8 +597,8 @@ fn fragment(in: FragmentInput) -> @location(0) vec4<f32> {
             view.inverse_view[1].z,
             view.inverse_view[2].z,
             view.inverse_view[3].z
-        ), in.world_position);
-        let cluster_index = fragment_cluster_index(in.frag_coord.xy, view_z, is_orthographic);
+        ), vin.world_position);
+        let cluster_index = fragment_cluster_index(vin.frag_coord.xy, view_z, is_orthographic);
         let offset_and_count = unpack_offset_and_count(cluster_index);
         for (var i: u32 = offset_and_count[0]; i < offset_and_count[0] + offset_and_count[1]; i = i + 1u) {
             let light_id = get_light_id(i);
@@ -606,9 +606,9 @@ fn fragment(in: FragmentInput) -> @location(0) vec4<f32> {
             var shadow: f32 = 1.0;
             if ((mesh.flags & MESH_FLAGS_SHADOW_RECEIVER_BIT) != 0u
                     && (light.flags & POINT_LIGHT_FLAGS_SHADOWS_ENABLED_BIT) != 0u) {
-                shadow = fetch_point_shadow(light_id, in.world_position, in.world_normal);
+                shadow = fetch_point_shadow(light_id, vin.world_position, vin.world_normal);
             }
-            let light_contrib = point_light(in.world_position.xyz, light, roughness, NdotV, N, V, R, F0, diffuse_color);
+            let light_contrib = point_light(vin.world_position.xyz, light, roughness, NdotV, N, V, R, F0, diffuse_color);
             light_accum = light_accum + light_contrib * shadow;
         }
 
@@ -618,7 +618,7 @@ fn fragment(in: FragmentInput) -> @location(0) vec4<f32> {
             var shadow: f32 = 1.0;
             if ((mesh.flags & MESH_FLAGS_SHADOW_RECEIVER_BIT) != 0u
                     && (light.flags & DIRECTIONAL_LIGHT_FLAGS_SHADOWS_ENABLED_BIT) != 0u) {
-                shadow = fetch_directional_shadow(i, in.world_position, in.world_normal);
+                shadow = fetch_directional_shadow(i, vin.world_position, vin.world_normal);
             }
             let light_contrib = directional_light(light, roughness, NdotV, N, V, R, F0, diffuse_color);
             light_accum = light_accum + light_contrib * shadow;
@@ -637,7 +637,7 @@ fn fragment(in: FragmentInput) -> @location(0) vec4<f32> {
 #ifdef CLUSTERED_FORWARD_DEBUG_Z_SLICES
         // NOTE: This debug mode visualises the z-slices
         let cluster_overlay_alpha = 0.1;
-        var z_slice: u32 = view_z_to_z_slice(view_z, is_orthographic);
+        var z_slice: u32 = view_z_to_z_slice(view_z; is_orthographic);
         // A hack to make the colors alternate a bit more
         if ((z_slice & 1u) == 1u) {
             z_slice = z_slice + lights.cluster_dimensions.z / 2u;

@@ -513,8 +513,8 @@ mod tests {
     #[rustfmt::skip]
 const WGSL: &str = r"
 struct View {
-    view_proj: mat4x4<f32>;
-    world_position: vec3<f32>;
+    view_proj: mat4x4<f32>,
+    world_position: vec3<f32>,
 };
 [[group(0), binding(0)]]
 var<uniform> view: View;

@@ -691,5 +691,6 @@ openxr_sys = { package = "openxr-sys", path = "../openxrs/sys" }
 openxr = { path = "../openxrs/openxr" }
 
 [patch.crates-io]
-wgpu = { git = "https://github.com/gfx-rs/wgpu", rev="83d0d161771265bab89b1b3ae0003de4f9f3641b" }
-naga = { git = "https://github.com/gfx-rs/naga", rev="a1840beb1a96c9a49980fe3efa8e2f3dcd88abe6"}
+wgpu = { git = "https://github.com/gfx-rs/wgpu", branch="master" }
+wgpu-hal = { git = "https://github.com/gfx-rs/wgpu", branch="master" }
+naga = { version = "=0.8.0", git = "https://github.com/gfx-rs/naga", rev="1aa91549"}

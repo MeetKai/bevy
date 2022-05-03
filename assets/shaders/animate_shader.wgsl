@@ -1,35 +1,36 @@
 #import bevy_pbr::mesh_view_bind_group
 #import bevy_pbr::mesh_struct
 
-[[group(1), binding(0)]]
+@group(1) @binding(0)
 var<uniform> mesh: Mesh;
 
 struct Vertex {
-    [[location(0)]] position: vec3<f32>;
-    [[location(1)]] normal: vec3<f32>;
-    [[location(2)]] uv: vec2<f32>;
+    @location(0) position: vec3<f32>,
+    @location(1) normal: vec3<f32>,
+    @location(2) uv: vec2<f32>,
 };
 
 struct VertexOutput {
-    [[builtin(position)]] clip_position: vec4<f32>;
-    [[location(0)]] uv: vec2<f32>;
+    @builtin(position) clip_position: vec4<f32>,
+    @location(0) uv: vec2<f32>,
 };
 
-[[stage(vertex)]]
+@vertex
 fn vertex(vertex: Vertex) -> VertexOutput {
     let world_position = mesh.model * vec4<f32>(vertex.position, 1.0);
 
-    var out: VertexOutput;
-    out.clip_position = view.view_proj * world_position;
-    out.uv = vertex.uv;
-    return out;
+    var vout: VertexOutput;
+    vout.clip_position = view.view_proj * world_position;
+    vout.uv = vertex.uv;
+    return vout;
 }
 
 
 struct Time {
     time_since_startup: f32;
 };
-[[group(2), binding(0)]]
+@group(2)
+@binding(0)
 var<uniform> time: Time;
 
 
@@ -53,13 +54,13 @@ fn oklab_to_linear_srgb(c: vec3<f32>) -> vec3<f32> {
     );
 }
 
-[[stage(fragment)]]
-fn fragment(in: VertexOutput) -> [[location(0)]] vec4<f32> {
+@fragment
+fn fragment(vin: VertexOutput) -> @location(0) vec4<f32> {
     let speed = 2.0;
     let t_1 = sin(time.time_since_startup * speed) * 0.5 + 0.5;
     let t_2 = cos(time.time_since_startup * speed);
 
-    let distance_to_center = distance(in.uv, vec2<f32>(0.5)) * 1.4;
+    let distance_to_center = distance(vin.uv, vec2<f32>(0.5)) * 1.4;
 
     // blending is done in a perceptual color space: https://bottosson.github.io/posts/oklab/
     let red = vec3<f32>(0.627955, 0.224863, 0.125846);
