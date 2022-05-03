@@ -14,7 +14,7 @@ size to alleviate the need to dynamically re-allocate buffers.
 
 ```glsl
 struct Frob {
-    vec3 size;
+    vec3 size,
     float frobiness;
 }
 

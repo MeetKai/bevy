@@ -30,9 +30,9 @@ struct DirectionalLight {
     color: vec4<f32>,
     direction_to_light: vec3<f32>,
     // 'flags' is a bit field indicating various options. u32 is 32 bits so we have up to 32 options.
-    flags: u32;
-    shadow_depth_bias: f32;
-    shadow_normal_bias: f32;
+    flags: u32,
+    shadow_depth_bias: f32,
+    shadow_normal_bias: f32,
 };
 
 let DIRECTIONAL_LIGHT_FLAGS_SHADOWS_ENABLED_BIT: u32 = 1u;
@@ -54,7 +54,7 @@ struct Lights {
     // z is -near
     // w is cluster_dimensions.z / (-far - -near)
     cluster_factors: vec4<f32>,
-    n_directional_lights: u32;
+    n_directional_lights: u32,
 };
 
 #ifdef NO_STORAGE_BUFFERS_SUPPORT

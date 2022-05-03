@@ -4,6 +4,6 @@ expression: "TestGlsl::glsl_definition()"
 
 ---
 struct TestGlsl {
-	vec3 foo;
+	vec3 foo,
 	mat2 bar;
 };

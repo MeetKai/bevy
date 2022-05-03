@@ -42,12 +42,12 @@ var<uniform> mesh: Mesh;
 struct StandardMaterial {
     base_color: vec4<f32>,
     emissive: vec4<f32>,
-    perceptual_roughness: f32;
-    metallic: f32;
-    reflectance: f32;
+    perceptual_roughness: f32,
+    metallic: f32,
+    reflectance: f32,
     // 'flags' is a bit field indicating various options. u32 is 32 bits so we have up to 32 options.
-    flags: u32;
-    alpha_cutoff: f32;
+    flags: u32,
+    alpha_cutoff: f32,
 };
 
 let STANDARD_MATERIAL_FLAGS_BASE_COLOR_TEXTURE_BIT: u32         = 1u;
@@ -327,9 +327,9 @@ fn point_light(
 
     var L: vec3<f32> = closestPoint * LspecLengthInverse; // normalize() equivalent?
     var H: vec3<f32> = normalize(L + V);
-    var NoL: f32 = saturate(dot(N; L));
-    var NoH: f32 = saturate(dot(N; H));
-    var LoH: f32 = saturate(dot(L; H));
+    var NoL: f32 = saturate(dot(N, L));
+    var NoH: f32 = saturate(dot(N, H));
+    var LoH: f32 = saturate(dot(L, H));
 
     let specular_light = specular(F0, roughness, H, NdotV, NoL, NoH, LoH, specularIntensity);
 
@@ -469,7 +469,7 @@ fn random1D(s: f32) -> f32 {
 }
 
 struct FragmentInput {
-    @builtin(front_facing) is_front: bool;
+    @builtin(front_facing) is_front: bool,
     @builtin(position) frag_coord: vec4<f32>,
     @location(0) world_position: vec4<f32>,
     @location(1) world_normal: vec3<f32>,
@@ -520,7 +520,7 @@ fn fragment(vin: FragmentInput) -> @location(0) vec4<f32> {
 #endif
 
         if ((material.flags & STANDARD_MATERIAL_FLAGS_DOUBLE_SIDED_BIT) != 0u) {
-            if (!in.is_front) {
+            if (!vin.is_front) {
                 N = -N;
 #ifdef VERTEX_TANGENTS
 #ifdef STANDARDMATERIAL_NORMAL_MAP

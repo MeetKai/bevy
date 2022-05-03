@@ -492,7 +492,6 @@ impl PipelineCache {
                         }
                         PipelineCacheError::AsModuleDescriptorError(err, source) => {
                             log_shader_error(source, err);
-                            panic!();
                             continue;
                         }
                         PipelineCacheError::CreateShaderModule(description) => {

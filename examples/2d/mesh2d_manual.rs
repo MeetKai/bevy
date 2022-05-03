@@ -213,7 +213,7 @@ var<uniform> mesh: Mesh2d;
 
 // The structure of the vertex buffer is as specified in `specialize()`
 struct Vertex {
-    [[location(0)]] position: vec3<f32>;
+    [[location(0)]] position: vec3<f32>,
     [[location(1)]] color: u32;
 };
 
