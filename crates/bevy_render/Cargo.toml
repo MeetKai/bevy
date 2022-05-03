@@ -51,7 +51,9 @@ image = { version = "0.23.12", default-features = false }
 # misc
 wgpu = { version = "0.12.0", features = [
     "spirv",
-]  }
+# ], git = "https://github.com/gfx-rs/wgpu", rev="fa35c0a0f4aaae35ab3d129266199008d89928fa" }
+# ], git = "https://github.com/gfx-rs/wgpu", branch="v0.12" }
+] }
 codespan-reporting = "0.11.0"
 naga = { version = "0.8.0", features = [
     "glsl-in",

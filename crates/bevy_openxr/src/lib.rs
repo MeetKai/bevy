@@ -473,20 +473,6 @@ fn runner(mut app: App) {
     XrCameras::spawn(app.world.spawn(), left_id, right_id);
     app.add_system_to_stage(CoreStage::PreUpdate, update_xrcamera_view);
 
-    let clear_color_default = Color::rgb(0.4, 0.4, 0.4);
-    let mut clear_color = app
-        .world
-        .get_resource_mut::<bevy_core_pipeline::ClearColor>()
-        .unwrap();
-    clear_color.insert(
-        bevy_render::camera::RenderTarget::TextureView(right_id),
-        clear_color_default,
-    );
-    clear_color.insert(
-        bevy_render::camera::RenderTarget::TextureView(left_id),
-        clear_color_default,
-    );
-
     'session_loop: loop {
         while let Some(event) = ctx.instance.poll_event(&mut event_storage).unwrap() {
             match event {

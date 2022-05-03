@@ -35,7 +35,8 @@
 #import bevy_pbr::mesh_view_bind_group
 #import bevy_pbr::mesh_struct
 
-[[group(2), binding(0)]]
+@group(2)
+@binding(0)
 var<uniform> mesh: Mesh;
 
 struct StandardMaterial {
@@ -61,27 +62,38 @@ let STANDARD_MATERIAL_FLAGS_ALPHA_MODE_BLEND: u32               = 256u;
 let STANDARD_MATERIAL_FLAGS_TWO_COMPONENT_NORMAL_MAP: u32       = 512u;
 let STANDARD_MATERIAL_FLAGS_FLIP_NORMAL_MAP_Y: u32              = 1024u;
 
-[[group(1), binding(0)]]
+@group(1)
+@binding(0)
 var<uniform> material: StandardMaterial;
-[[group(1), binding(1)]]
+@group(1)
+@binding(1)
 var base_color_texture: texture_2d<f32>;
-[[group(1), binding(2)]]
+@group(1)
+@binding(2)
 var base_color_sampler: sampler;
-[[group(1), binding(3)]]
+@group(1)
+@binding(3)
 var emissive_texture: texture_2d<f32>;
-[[group(1), binding(4)]]
+@group(1)
+@binding(4)
 var emissive_sampler: sampler;
-[[group(1), binding(5)]]
+@group(1)
+@binding(5)
 var metallic_roughness_texture: texture_2d<f32>;
-[[group(1), binding(6)]]
+@group(1)
+@binding(6)
 var metallic_roughness_sampler: sampler;
-[[group(1), binding(7)]]
+@group(1)
+@binding(7)
 var occlusion_texture: texture_2d<f32>;
-[[group(1), binding(8)]]
+@group(1)
+@binding(8)
 var occlusion_sampler: sampler;
-[[group(1), binding(9)]]
+@group(1)
+@binding(9)
 var normal_map_texture: texture_2d<f32>;
-[[group(1), binding(10)]]
+@group(1)
+@binding(10)
 var normal_map_sampler: sampler;
 
 let PI: f32 = 3.141592653589793;
@@ -457,18 +469,18 @@ fn random1D(s: f32) -> f32 {
 }
 
 struct FragmentInput {
-    [[builtin(front_facing)]] is_front: bool;
-    [[builtin(position)]] frag_coord: vec4<f32>;
-    [[location(0)]] world_position: vec4<f32>;
-    [[location(1)]] world_normal: vec3<f32>;
-    [[location(2)]] uv: vec2<f32>;
+    @builtin(front_facing) is_front: bool;
+    @builtin(position) frag_coord: vec4<f32>;
+    @location(0) world_position: vec4<f32>;
+    @location(1) world_normal: vec3<f32>;
+    @location(2) uv: vec2<f32>;
 #ifdef VERTEX_TANGENTS
-    [[location(3)]] world_tangent: vec4<f32>;
+    @location(3) world_tangent: vec4<f32>;
 #endif
 };
 
-[[stage(fragment)]]
-fn fragment(in: FragmentInput) -> [[location(0)]] vec4<f32> {
+@stage(fragment)
+fn fragment(in: FragmentInput) -> @location(0) vec4<f32> {
     var output_color: vec4<f32> = material.base_color;
     if ((material.flags & STANDARD_MATERIAL_FLAGS_BASE_COLOR_TEXTURE_BIT) != 0u) {
         output_color = output_color * textureSample(base_color_texture, base_color_sampler, in.uv);

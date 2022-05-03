@@ -26,4 +26,6 @@ bevy_utils = { path = "../bevy_utils", version = "0.8.0-dev" }
 # other
 downcast-rs = "1.2"
 serde = "1"
-wgpu = { version = "0.12", git = "https://github.com/gfx-rs/wgpu" }
+# wgpu = { version = "0.12", git = "https://github.com/gfx-rs/wgpu", rev="fa35c0a0f4aaae35ab3d129266199008d89928fa" }
+# wgpu = { version = "0.12", git = "https://github.com/gfx-rs/wgpu", branch="v0.12" }
+wgpu = { version = "0.12" }
