@@ -218,6 +218,7 @@ pub fn create_graphics_context(
                 instance: wgpu_instance,
                 device: Arc::new(wgpu_device),
                 queue: Arc::new(wgpu_queue),
+                adapter_info: wgpu_adapter.get_info(),
             },
         ))
     } else {

@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
+use wgpu::AdapterInfo;
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Serialize, Deserialize)]
 pub enum XrEnvironmentBlendMode {
@@ -25,6 +26,7 @@ pub struct XrGraphicsContext {
     pub instance: wgpu::Instance,
     pub device: Arc<wgpu::Device>,
     pub queue: Arc<wgpu::Queue>,
+    pub adapter_info: AdapterInfo,
 }
 
 // Trait implemented by XR backends that support display mode.

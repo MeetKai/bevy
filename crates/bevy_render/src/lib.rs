@@ -138,9 +138,24 @@ impl Plugin for RenderPlugin {
                 compatible_surface: surface.as_ref(),
                 ..Default::default()
             };
-            let (device, queue, adapter_info) = futures_lite::future::block_on(
-                renderer::initialize_renderer(&instance, &options, &request_adapter_options),
-            );
+
+            let (device, queue, adapter_info) = match (
+                app.world.get_resource::<renderer::RenderDevice>(),
+                app.world.get_resource::<renderer::RenderQueue>(),
+                app.world.get_resource::<wgpu::AdapterInfo>(),
+            ) {
+                (Some(dev), Some(queue), Some(adapter_info)) => {
+                    (dev.clone(), queue.clone(), adapter_info.clone())
+                }
+                _ => futures_lite::future::block_on(renderer::initialize_renderer(
+                    &instance,
+                    &options,
+                    &request_adapter_options,
+                )),
+            };
+            // let (device, queue, adapter_info) = futures_lite::future::block_on(
+            //     renderer::initialize_renderer(&instance, &options, &request_adapter_options),
+            // );
             debug!("Configured wgpu adapter Limits: {:#?}", device.limits());
             debug!("Configured wgpu adapter Features: {:#?}", device.features());
             app.insert_resource(device.clone())

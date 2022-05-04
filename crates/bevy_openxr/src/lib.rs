@@ -300,9 +300,12 @@ impl Plugin for OpenXrPlugin {
 
         let dev = bevy_render::renderer::RenderDevice::from(graphics_context.device.clone());
         let queue = bevy_render::renderer::RenderQueue::from(graphics_context.queue.clone());
+        let adapter_info = graphics_context.adapter_info.clone();
 
         //override default render stuff
-        app.insert_resource(dev).insert_resource(queue);
+        app.insert_resource(dev)
+            .insert_resource(queue)
+            .insert_resource(adapter_info);
 
         app.insert_resource::<XrGraphicsContext>(graphics_context)
             .set_runner(runner);

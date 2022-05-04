@@ -118,8 +118,8 @@ impl Default for Image {
     fn default() -> Self {
         let format = wgpu::TextureFormat::bevy_default();
         let data = vec![255; format.pixel_size() as usize];
-        dbg!("making default image!");
-        eprintln!("{:?}", Backtrace::new());
+        // dbg!("making default image!");
+        // eprintln!("{:?}", Backtrace::new());
         Image {
             data,
             texture_descriptor: wgpu::TextureDescriptor {
