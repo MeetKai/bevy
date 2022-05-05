@@ -186,12 +186,13 @@ impl OpenXrTrackingContext {
                 .create_space((*session).clone(), xr::Path::NULL, xr::Posef::IDENTITY)
                 .unwrap(),
         ];
-        let hand_trackers = instance.supports_hand_tracking(system).unwrap().then(|| {
-            [
-                session.create_hand_tracker(xr::Hand::LEFT).unwrap(),
-                session.create_hand_tracker(xr::Hand::RIGHT).unwrap(),
-            ]
-        });
+        // let hand_trackers = instance.supports_hand_tracking(system).unwrap().then(|| {
+        //     [
+        //         session.create_hand_tracker(xr::Hand::LEFT).unwrap(),
+        //         session.create_hand_tracker(xr::Hand::RIGHT).unwrap(),
+        //     ]
+        // });
+        let hand_trackers = None;
 
         Self {
             reference: RwLock::new(reference),
