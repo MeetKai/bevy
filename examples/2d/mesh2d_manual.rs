@@ -145,7 +145,7 @@ impl SpecializedRenderPipeline for ColoredMesh2dPipeline {
             vertex: VertexState {
                 // Use our custom shader
                 shader: COLORED_MESH2D_SHADER_HANDLE.typed::<Shader>(),
-                entry_point: "vertex".into(),
+                entry_point: "vertex_fn".into(),
                 shader_defs: Vec::new(),
                 // Use our custom vertex buffer
                 buffers: vec![vertex_layout],
@@ -154,7 +154,7 @@ impl SpecializedRenderPipeline for ColoredMesh2dPipeline {
                 // Use our custom shader
                 shader: COLORED_MESH2D_SHADER_HANDLE.typed::<Shader>(),
                 shader_defs: Vec::new(),
-                entry_point: "fragment".into(),
+                entry_point: "fragment_fn".into(),
                 targets: vec![ColorTargetState {
                     format: TextureFormat::bevy_default(),
                     blend: Some(BlendState::ALPHA_BLENDING),
