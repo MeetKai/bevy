@@ -1,16 +1,22 @@
-use bevy_app::{App, Plugin};
+use bevy_app::{App, CoreStage, Plugin};
 use bevy_core_pipeline::{AlphaMask3d, Opaque3d, Transparent3d};
 use bevy_ecs::{
     prelude::{Component, World},
+    schedule::ParallelSystemDescriptorCoercion,
     system::{Commands, Res},
 };
 use bevy_render::{
-    camera::{ActiveCamera, CameraTypePlugin},
+    camera::{camera_system, ActiveCamera, CameraTypePlugin},
     render_graph::{self, NodeRunError, RenderGraph, RenderGraphContext, SlotValue},
     render_phase::RenderPhase,
     renderer::RenderContext,
+    view::{update_frusta, VisibilitySystems},
     RenderApp, RenderStage,
 };
+use bevy_transform::TransformSystem;
+use bevy_window::ModifiesWindows;
+
+use super::XRProjection;
 
 #[derive(Component, Default)]
 pub struct XrCameraLeftMarker;
@@ -41,6 +47,20 @@ impl Plugin for XrCameraPlugin {
         render_graph
             .add_node_edge(bevy_core_pipeline::node::CLEAR_PASS_DRIVER, xr_camera_node)
             .unwrap();
+
+        app.register_type::<XRProjection>();
+        //  make sure XRProjection-based cameras are processed
+        app.add_system_to_stage(
+            CoreStage::PostUpdate,
+            camera_system::<XRProjection>.after(ModifiesWindows),
+        );
+        app.add_system_to_stage(
+            CoreStage::PostUpdate,
+            update_frusta::<XRProjection>
+                .after(TransformSystem::TransformPropagate)
+                //  ensures we execute at the right time without adding more labels
+                .before(VisibilitySystems::UpdatePerspectiveFrusta),
+        );
     }
 }
 

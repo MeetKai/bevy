@@ -21,7 +21,10 @@ pub mod prelude {
 }
 
 use bevy_app::prelude::*;
-use bevy_ecs::{event::Events, schedule::SystemLabel};
+use bevy_ecs::{
+    event::Events,
+    schedule::{ParallelSystemDescriptorCoercion, SystemLabel},
+};
 
 pub struct WindowPlugin {
     pub add_primary_window: bool,
@@ -72,8 +75,15 @@ impl Plugin for WindowPlugin {
         if self.exit_on_close {
             app.add_system(exit_on_window_close_system);
         }
+
+        // #[cfg(feature = "bevy_openxr")]
+        {
+            app.add_system_to_stage(CoreStage::PostUpdate, dummy.label(ModifiesWindows));
+        }
     }
 }
+
+fn dummy() {}
 
 #[derive(Debug, Hash, PartialEq, Eq, Clone, SystemLabel)]
 pub struct ModifiesWindows;
