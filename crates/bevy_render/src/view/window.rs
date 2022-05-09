@@ -1,5 +1,4 @@
 use crate::{
-    camera::ManualTextureViews,
     render_resource::TextureView,
     renderer::{RenderDevice, RenderInstance},
     texture::BevyDefault,

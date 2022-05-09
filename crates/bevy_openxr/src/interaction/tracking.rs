@@ -132,8 +132,8 @@ pub struct OpenXrTrackingContext {
 
 impl OpenXrTrackingContext {
     pub(crate) fn new(
-        instance: &xr::Instance,
-        system: xr::SystemId,
+        _instance: &xr::Instance,
+        _system: xr::SystemId,
         interaction_context: &InteractionContext,
         session: OpenXrSession,
     ) -> Self {

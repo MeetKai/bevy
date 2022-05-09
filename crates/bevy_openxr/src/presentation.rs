@@ -3,11 +3,11 @@ use bevy_xr::presentation::XrGraphicsContext;
 use openxr as xr;
 use std::{
     error::Error,
-    ffi::{CStr, CString},
+    ffi::{CStr},
     sync::Arc,
 };
 use wgpu_hal as hal;
-use xr::sys::{platform::VkInstanceCreateInfo, InstanceCreateInfo, VulkanInstanceCreateInfoKHR};
+use xr::sys::{platform::VkInstanceCreateInfo};
 
 #[derive(Clone)]
 pub enum GraphicsContextHandles {

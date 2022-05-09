@@ -4,7 +4,7 @@ use bevy_ecs::{
     world::EntityMut,
 };
 use bevy_hierarchy::BuildWorldChildren;
-use bevy_math::{Mat4, Quat, Vec3, Vec4};
+use bevy_math::{Mat4, Quat, Vec3};
 use bevy_reflect::{Reflect, Uuid};
 use bevy_render::{
     camera::{Camera, CameraProjection, DepthCalculation, RenderTarget},
@@ -232,7 +232,7 @@ impl XrPawn {
                 .insert(XrCameras {})
                 .insert_bundle(TransformBundle::default())
                 .with_children(|parent| {
-                    let left = parent
+                    let _left = parent
                         .spawn_bundle(XRCameraBundle {
                             camera: Camera {
                                 target: RenderTarget::TextureView(left_id),
@@ -243,7 +243,7 @@ impl XrPawn {
                         })
                         .insert(Eye::Left)
                         .id();
-                    let right = parent
+                    let _right = parent
                         .spawn_bundle(XRCameraBundle {
                             camera: Camera {
                                 target: RenderTarget::TextureView(right_id),

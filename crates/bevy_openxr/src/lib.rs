@@ -1,10 +1,7 @@
 pub mod camera;
 mod conversion;
-use bevy_hierarchy::BuildWorldChildren;
-use camera::{
-    xrcameraplugin::{XrCameraLeftMarker, XrCameraRightMarker},
-    XRCameraBundle, XRProjection,
-};
+
+
 use conversion::*;
 mod interaction;
 mod presentation;
@@ -13,31 +10,21 @@ use swapchain::*;
 
 use ash::vk;
 use ash::vk::Handle;
-use bevy_math::{Quat, UVec2, Vec3};
+
 use bevy_render::{
     camera::{
-        camera_system, ActiveCamera, Camera, Camera3d, CameraProjection, CameraTypePlugin,
-        ManualTextureViews, PerspectiveCameraBundle, PerspectiveProjection, RenderTarget,
+        CameraProjection,
+        ManualTextureViews,
     },
-    prelude::{Color, Msaa},
-    primitives::Frustum,
-    view::{update_frusta, VisibilitySystems},
+    prelude::{Msaa},
 };
-use bevy_transform::{
-    components::{GlobalTransform, Transform},
-    TransformSystem,
-};
+
 use bevy_utils::Uuid;
 pub use interaction::*;
 
-use bevy_app::{App, AppExit, CoreStage, Plugin};
+use bevy_app::{App, AppExit, Plugin};
 use bevy_ecs::{
-    entity::Entity,
     event::{Events, ManualEventReader},
-    prelude::{Bundle, Component, Without, World},
-    schedule::{ParallelSystemDescriptorCoercion, Schedule},
-    system::{Commands, IntoSystem, Query, Res, System},
-    world::EntityMut,
 };
 use bevy_xr::{
     presentation::{XrEnvironmentBlendMode, XrGraphicsContext, XrInteractionMode},
@@ -47,13 +34,13 @@ use openxr::{self as xr, sys};
 use parking_lot::RwLock;
 use presentation::GraphicsContextHandles;
 use serde::{Deserialize, Serialize};
-use xr::{Quaternionf, Vector3f, View};
+
 
 use std::{error::Error, ops::Deref, sync::Arc, thread, time::Duration};
 use wgpu::{TextureUsages, TextureViewDescriptor};
 use wgpu_hal::TextureUses;
 
-use crate::camera::{update_xrcamera_view, xrcameraplugin::XrCameraPlugin, XrCameras, XrPawn};
+use crate::camera::{XrPawn};
 
 // The form-factor is selected at plugin-creation-time and cannot be changed anymore for the entire
 // lifetime of the app. This will restrict which XrSessionMode can be selected.
@@ -612,7 +599,7 @@ fn runner(mut app: App) {
         *next_vsync_time.write() = frame_state.predicted_display_time;
 
         {
-            let world_cell = app.world.cell();
+            let _world_cell = app.world.cell();
             // handle_input(
             //     &interaction_context,
             //     &session,

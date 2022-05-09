@@ -1,10 +1,10 @@
 use bevy::{
     app::AppExit,
-    openxr::{camera::XrPawn, OpenXrPlugin, OCULUS_TOUCH_PROFILE},
+    openxr::{camera::XrPawn, OCULUS_TOUCH_PROFILE},
     prelude::*,
     utils::Duration,
     xr::{
-        XrActionDescriptor, XrActionSet, XrActionType, XrHandType, XrPlugin, XrProfileDescriptor,
+        XrActionDescriptor, XrActionSet, XrActionType, XrHandType, XrProfileDescriptor,
         XrReferenceSpaceType, XrSessionMode, XrSystem, XrTrackingSource, XrVibrationEvent,
         XrVibrationEventType,
     },
@@ -27,8 +27,8 @@ fn dummy(
     mut q: Query<(&mut Transform, &GlobalTransform, &XrPawn)>,
     cube: Query<(&Transform, &CubeMarker), Without<XrPawn>>,
 ) {
-    if let Ok((cube, _)) = cube.get_single() {
-        for (mut cam, global, _) in q.iter_mut() {
+    if let Ok((_cube, _)) = cube.get_single() {
+        for (mut cam, _global, _) in q.iter_mut() {
             // cam.look_at(cube.translation, Vec3::X);
             cam.translation = Vec3::new(10., 10., 10.);
         }
@@ -36,7 +36,7 @@ fn dummy(
 }
 
 fn init_camera_position(mut q: Query<(&mut Transform, &mut GlobalTransform, &XrPawn)>) {
-    for (mut transform, mut global, _) in q.iter_mut() {
+    for (mut transform, _global, _) in q.iter_mut() {
         transform.translation = Vec3::new(20., 20., 20.);
     }
 }
@@ -99,7 +99,7 @@ fn startup(
     })
     .insert(CubeMarker);
 
-    let oculus_profile = XrProfileDescriptor {
+    let _oculus_profile = XrProfileDescriptor {
         profile: OCULUS_TOUCH_PROFILE.into(),
         bindings: vec![
             (left_button.clone(), "/user/hand/left/input/trigger".into()),
@@ -171,10 +171,10 @@ fn interaction(
 
     let [left_pose, right_pose] = tracking_source.hands_pose();
     if let Some(pose) = left_pose {
-        let left_pose = pose.to_mat4();
+        let _left_pose = pose.to_mat4();
     }
     if let Some(pose) = right_pose {
-        let right_pose = pose.to_mat4();
+        let _right_pose = pose.to_mat4();
     }
 
     todo!() // Draw hands
