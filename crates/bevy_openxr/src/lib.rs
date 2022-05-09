@@ -1,7 +1,6 @@
 pub mod camera;
 mod conversion;
 
-
 use conversion::*;
 mod interaction;
 mod presentation;
@@ -12,20 +11,15 @@ use ash::vk;
 use ash::vk::Handle;
 
 use bevy_render::{
-    camera::{
-        CameraProjection,
-        ManualTextureViews,
-    },
-    prelude::{Msaa},
+    camera::{CameraProjection, ManualTextureViews},
+    prelude::Msaa,
 };
 
 use bevy_utils::Uuid;
 pub use interaction::*;
 
 use bevy_app::{App, AppExit, Plugin};
-use bevy_ecs::{
-    event::{Events, ManualEventReader},
-};
+use bevy_ecs::event::{Events, ManualEventReader};
 use bevy_xr::{
     presentation::{XrEnvironmentBlendMode, XrGraphicsContext, XrInteractionMode},
     XrProfiles, XrSessionMode, XrSystem, XrTrackingSource, XrVibrationEvent, XrVisibilityState,
@@ -35,12 +29,11 @@ use parking_lot::RwLock;
 use presentation::GraphicsContextHandles;
 use serde::{Deserialize, Serialize};
 
-
 use std::{error::Error, ops::Deref, sync::Arc, thread, time::Duration};
 use wgpu::{TextureUsages, TextureViewDescriptor};
 use wgpu_hal::TextureUses;
 
-use crate::camera::{XrPawn};
+use crate::camera::XrPawn;
 
 // The form-factor is selected at plugin-creation-time and cannot be changed anymore for the entire
 // lifetime of the app. This will restrict which XrSessionMode can be selected.
@@ -291,7 +284,7 @@ impl Plugin for OpenXrPlugin {
         println!("got graphics context");
 
         let dev = bevy_render::renderer::RenderDevice::from(graphics_context.device.clone());
-        let queue = bevy_render::renderer::RenderQueue::from(graphics_context.queue.clone());
+        let queue = graphics_context.queue.clone();
         let adapter_info = graphics_context.adapter_info.clone();
 
         //override default render stuff

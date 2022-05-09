@@ -24,7 +24,7 @@ impl EyeSwapchains {
     ) -> Result<Self, OpenXrError> {
         Ok(Self {
             left: create_swapchain(xr_session, resolutions[0], device.clone())?,
-            right: create_swapchain(xr_session, resolutions[1], device.clone())?,
+            right: create_swapchain(xr_session, resolutions[1], device)?,
         })
     }
 }
@@ -52,9 +52,9 @@ pub fn create_swapchain(
         .unwrap()
         .into_iter()
         .map(|color_image| {
-            let color_image = vk::Image::from_raw(color_image);
+            
 
-            color_image
+            vk::Image::from_raw(color_image)
         })
         .collect();
 
@@ -83,7 +83,9 @@ pub fn create_swapchain(
                 )
             };
 
-            let tex = unsafe {
+            
+
+            unsafe {
                 device.create_texture_from_hal::<wgpu_hal::api::Vulkan>(
                     tex,
                     &wgpu::TextureDescriptor {
@@ -96,9 +98,7 @@ pub fn create_swapchain(
                         label: None,
                     },
                 )
-            };
-
-            tex
+            }
         })
         .collect();
     Ok(Swapchain {
