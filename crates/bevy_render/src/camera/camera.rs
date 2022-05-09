@@ -370,7 +370,6 @@ pub fn extract_cameras<M: Component + Default>(
                     .target
                     .get_physical_size(&windows, &images, &manual_texture_views)
             {
-                dbg!(size);
                 commands.get_or_spawn(entity).insert_bundle((
                     ExtractedCamera {
                         target: camera.target.clone(),

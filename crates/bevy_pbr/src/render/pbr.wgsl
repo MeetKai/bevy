@@ -480,7 +480,7 @@ struct FragmentInput {
 };
 
 @fragment
-fn fragment(vin: FragmentInput) -> @location(0) vec4<f32> {
+fn fragment_fn(vin: FragmentInput) -> @location(0) vec4<f32> {
     var output_color: vec4<f32> = material.base_color;
     if ((material.flags & STANDARD_MATERIAL_FLAGS_BASE_COLOR_TEXTURE_BIT) != 0u) {
         output_color = output_color * textureSample(base_color_texture, base_color_sampler, vin.uv);

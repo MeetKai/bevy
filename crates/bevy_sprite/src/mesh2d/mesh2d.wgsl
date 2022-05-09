@@ -27,7 +27,7 @@ var<uniform> view: View;
 var<uniform> mesh: Mesh2d;
 
 @vertex
-fn vertex(vertex: Vertex) -> VertexOutput {
+fn vertex_fn(vertex: Vertex) -> VertexOutput {
     let world_position = mesh.model * vec4<f32>(vertex.position, 1.0);
 
     var vout: VertexOutput;
@@ -63,6 +63,6 @@ struct FragmentInput {
 };
 
 @fragment
-fn fragment(vin: FragmentInput) -> @location(0) vec4<f32> {
+fn fragment_fn(vin: FragmentInput) -> @location(0) vec4<f32> {
     return vec4<f32>(1.0, 0.0, 1.0, 1.0);
 }

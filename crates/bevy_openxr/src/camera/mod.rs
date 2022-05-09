@@ -162,3 +162,5 @@ impl CameraProjection for XRProjection {
         self.far
     }
 }
+
+pub mod xrcameraplugin;

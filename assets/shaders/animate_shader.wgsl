@@ -16,7 +16,7 @@ struct VertexOutput {
 };
 
 @vertex
-fn vertex(vertex: Vertex) -> VertexOutput {
+fn vertex_fn(vertex: Vertex) -> VertexOutput {
     let world_position = mesh.model * vec4<f32>(vertex.position, 1.0);
 
     var vout: VertexOutput;
@@ -55,7 +55,7 @@ fn oklab_to_linear_srgb(c: vec3<f32>) -> vec3<f32> {
 }
 
 @fragment
-fn fragment(vin: VertexOutput) -> @location(0) vec4<f32> {
+fn fragment_fn(vin: VertexOutput) -> @location(0) vec4<f32> {
     let speed = 2.0;
     let t_1 = sin(time.time_since_startup * speed) * 0.5 + 0.5;
     let t_2 = cos(time.time_since_startup * speed);

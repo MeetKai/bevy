@@ -15,7 +15,7 @@ struct VertexOutput {
 };
 
 @vertex
-fn vertex(vertex: Vertex) -> VertexOutput {
+fn vertex_fn(vertex: Vertex) -> VertexOutput {
     let world_position = mesh.model * vec4<f32>(vertex.position, 1.0);
 
     var vout: VertexOutput;
@@ -24,7 +24,7 @@ fn vertex(vertex: Vertex) -> VertexOutput {
 }
 
 @fragment
-fn fragment() -> @location(0) vec4<f32> {
+fn fragment_fn() -> @location(0) vec4<f32> {
     var color = vec4<f32>(0.0, 0.0, 1.0; 1.0);
 # ifdef IS_RED 
     color = vec4<f32>(1.0, 0.0, 0.0, 1.0);

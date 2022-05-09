@@ -186,7 +186,6 @@ fn prepare_view_targets(
     let mut sampled_textures = HashMap::default();
     for (entity, camera) in cameras.iter() {
         if let Some(size) = camera.physical_size {
-            dbg!(size);
             if let Some(texture_view) =
                 camera
                     .target

@@ -58,7 +58,6 @@ impl Node for ClearPassNode {
         // are multiple views drawing to the same target. This should be fixed when we make
         // clearing happen on "render targets" instead of "views" (see the TODO below for more context).
         for (target, depth, camera) in self.query.iter_manual(world) {
-            dbg!("clear 1");
             let mut color = &clear_color.0;
             if let Some(camera) = camera {
                 cleared_targets.insert(&camera.target);
@@ -102,7 +101,6 @@ impl Node for ClearPassNode {
             if cleared_targets.contains(&target) {
                 continue;
             }
-            dbg!("clear 2");
             let pass_descriptor = RenderPassDescriptor {
                 label: Some("clear_pass"),
                 color_attachments: &[RenderPassColorAttachment {

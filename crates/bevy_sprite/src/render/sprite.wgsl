@@ -14,7 +14,7 @@ struct VertexOutput {
 };
 
 @vertex
-fn vertex(
+fn vertex_fn(
     @location(0) vertex_position: vec3<f32>,
     @location(1) vertex_uv: vec2<f32>,
 #ifdef COLORED
@@ -36,7 +36,7 @@ var sprite_texture: texture_2d<f32>;
 var sprite_sampler: sampler;
 
 @fragment
-fn fragment(vin: VertexOutput) -> @location(0) vec4<f32> {
+fn fragment_fn(vin: VertexOutput) -> @location(0) vec4<f32> {
     var color = textureSample(sprite_texture, sprite_sampler, vin.uv); 
 #ifdef COLORED
     color = vin.color * color;

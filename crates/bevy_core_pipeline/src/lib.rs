@@ -402,7 +402,6 @@ pub fn prepare_core_views_system(
 ) {
     let mut textures = HashMap::default();
     for (entity, view, camera) in views_3d.iter() {
-        dbg!((view.width, view.height));
         let mut get_cached_texture = || {
             texture_cache.get(
                 &render_device,

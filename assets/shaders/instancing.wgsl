@@ -19,7 +19,7 @@ struct VertexOutput {
 };
 
 @vertex
-fn vertex(vertex: Vertex) -> VertexOutput {
+fn vertex_fn(vertex: Vertex) -> VertexOutput {
     let position = vertex.position * vertex.i_pos_scale.w + vertex.i_pos_scale.xyz;
     let world_position = mesh.model * vec4<f32>(position, 1.0);
 
@@ -30,6 +30,6 @@ fn vertex(vertex: Vertex) -> VertexOutput {
 }
 
 @fragment
-fn fragment(vin: VertexOutput) -> @location(0) vec4<f32> {
+fn fragment_fn(vin: VertexOutput) -> @location(0) vec4<f32> {
     return vin.color;
 }

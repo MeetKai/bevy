@@ -1,7 +1,10 @@
-mod camera;
+pub mod camera;
 mod conversion;
 use bevy_hierarchy::BuildWorldChildren;
-use camera::{XRCameraBundle, XRProjection};
+use camera::{
+    xrcameraplugin::{XrCameraLeftMarker, XrCameraRightMarker},
+    XRCameraBundle, XRProjection,
+};
 use conversion::*;
 mod interaction;
 mod presentation;
@@ -13,8 +16,8 @@ use ash::vk::Handle;
 use bevy_math::{Quat, UVec2, Vec3};
 use bevy_render::{
     camera::{
-        camera_system, ActiveCamera, Camera, Camera3d, CameraProjection, ManualTextureViews,
-        PerspectiveCameraBundle, PerspectiveProjection, RenderTarget,
+        camera_system, ActiveCamera, Camera, Camera3d, CameraProjection, CameraTypePlugin,
+        ManualTextureViews, PerspectiveCameraBundle, PerspectiveProjection, RenderTarget,
     },
     prelude::{Color, Msaa},
     primitives::Frustum,
@@ -49,6 +52,8 @@ use xr::{Quaternionf, Vector3f, View};
 use std::{error::Error, ops::Deref, sync::Arc, thread, time::Duration};
 use wgpu::{TextureUsages, TextureViewDescriptor};
 use wgpu_hal::TextureUses;
+
+use crate::camera::xrcameraplugin::XrCameraPlugin;
 
 // The form-factor is selected at plugin-creation-time and cannot be changed anymore for the entire
 // lifetime of the app. This will restrict which XrSessionMode can be selected.
@@ -731,7 +736,7 @@ impl XrCameras {
                         target: RenderTarget::TextureView(left_id),
                         ..Default::default()
                     },
-                    marker: Camera3d,
+                    marker: XrCameraLeftMarker,
                     ..Default::default()
                 })
                 .insert(Eye::Left)
@@ -742,7 +747,7 @@ impl XrCameras {
                         target: RenderTarget::TextureView(right_id),
                         ..Default::default()
                     },
-                    marker: Camera3d,
+                    marker: XrCameraRightMarker,
                     ..Default::default()
                 })
                 .insert(Eye::Right)

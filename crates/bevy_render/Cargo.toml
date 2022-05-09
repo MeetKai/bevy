@@ -50,7 +50,7 @@ image = { version = "0.23.12", default-features = false }
 
 # misc
 wgpu = { version = "0.12.0", features = [
-    "spirv",
+    "spirv", "vulkan-portability",
 # ], git = "https://github.com/gfx-rs/wgpu", rev="fa35c0a0f4aaae35ab3d129266199008d89928fa" }
 # ], git = "https://github.com/gfx-rs/wgpu", branch="v0.12" }
 ] }

@@ -82,14 +82,14 @@ impl SpecializedRenderPipeline for UiPipeline {
         RenderPipelineDescriptor {
             vertex: VertexState {
                 shader: super::UI_SHADER_HANDLE.typed::<Shader>(),
-                entry_point: "vertex".into(),
+                entry_point: "vertex_fn".into(),
                 shader_defs: shader_defs.clone(),
                 buffers: vec![vertex_layout],
             },
             fragment: Some(FragmentState {
                 shader: super::UI_SHADER_HANDLE.typed::<Shader>(),
                 shader_defs,
-                entry_point: "fragment".into(),
+                entry_point: "fragment_fn".into(),
                 targets: vec![ColorTargetState {
                     format: TextureFormat::bevy_default(),
                     blend: Some(BlendState::ALPHA_BLENDING),

@@ -23,7 +23,7 @@ var<uniform> joint_matrices: SkinnedMesh;
 #endif
 
 @vertex
-fn vertex(vertex: Vertex) -> VertexOutput {
+fn vertex_fn(vertex: Vertex) -> VertexOutput {
 #ifdef SKINNED
     let model = skin_model(vertex.joint_indexes, vertex.joint_weights);
 #else
@@ -38,6 +38,6 @@ fn vertex(vertex: Vertex) -> VertexOutput {
 }
 
 @fragment
-fn fragment() -> @location(0) vec4<f32> {
+fn fragment_fn() -> @location(0) vec4<f32> {
     return vec4<f32>(1.0, 1.0, 1.0, 1.0);
 }

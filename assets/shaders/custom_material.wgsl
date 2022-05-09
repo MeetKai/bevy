@@ -5,6 +5,6 @@ struct CustomMaterial {
 var<uniform> material: CustomMaterial;
 
 @fragment
-fn fragment() -> @location(0) vec4<f32> {
+fn fragment_fn() -> @location(0) vec4<f32> {
     return material.color;
 }

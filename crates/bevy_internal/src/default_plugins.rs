@@ -58,6 +58,10 @@ impl PluginGroup for DefaultPlugins {
         #[cfg(feature = "bevy_core_pipeline")]
         group.add(bevy_core_pipeline::CorePipelinePlugin::default());
 
+        //  must be after core pipeline
+        #[cfg(feature = "bevy_openxr")]
+        group.add(bevy_openxr::camera::xrcameraplugin::XrCameraPlugin::default());
+
         #[cfg(feature = "bevy_sprite")]
         group.add(bevy_sprite::SpritePlugin::default());
 
