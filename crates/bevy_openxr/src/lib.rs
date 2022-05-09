@@ -53,7 +53,7 @@ use std::{error::Error, ops::Deref, sync::Arc, thread, time::Duration};
 use wgpu::{TextureUsages, TextureViewDescriptor};
 use wgpu_hal::TextureUses;
 
-use crate::camera::xrcameraplugin::XrCameraPlugin;
+use crate::camera::{update_xrcamera_view, xrcameraplugin::XrCameraPlugin, XrCameras, XrPawn};
 
 // The form-factor is selected at plugin-creation-time and cannot be changed anymore for the entire
 // lifetime of the app. This will restrict which XrSessionMode can be selected.
@@ -317,7 +317,6 @@ impl Plugin for OpenXrPlugin {
 
         //  XXX: multi-sampling with RenderTarget::TextureView doesn't work currently
         app.insert_resource(Msaa { samples: 1 });
-
     }
 }
 
@@ -469,8 +468,7 @@ fn runner(mut app: App) {
 
     let left_id = Uuid::new_v4();
     let right_id = Uuid::new_v4();
-    XrCameras::spawn(app.world.spawn(), left_id, right_id);
-    app.add_system_to_stage(CoreStage::PreUpdate, update_xrcamera_view);
+    XrPawn::spawn(app.world.spawn(), left_id, right_id);
 
     'session_loop: loop {
         while let Some(event) = ctx.instance.poll_event(&mut event_storage).unwrap() {
@@ -706,101 +704,5 @@ fn runner(mut app: App) {
         {
             session.request_exit().unwrap();
         }
-    }
-}
-
-#[derive(Component)]
-pub struct XrCameras {}
-
-#[derive(Component, Debug)]
-pub enum Eye {
-    Left,
-    Right,
-}
-
-impl XrCameras {
-    pub fn spawn(mut e: EntityMut, left_id: Uuid, right_id: Uuid) {
-        e.with_children(|parent| {
-            let left = parent
-                .spawn_bundle(XRCameraBundle {
-                    camera: Camera {
-                        target: RenderTarget::TextureView(left_id),
-                        ..Default::default()
-                    },
-                    marker: XrCameraLeftMarker,
-                    ..Default::default()
-                })
-                .insert(Eye::Left)
-                .id();
-            let right = parent
-                .spawn_bundle(XRCameraBundle {
-                    camera: Camera {
-                        target: RenderTarget::TextureView(right_id),
-                        ..Default::default()
-                    },
-                    marker: XrCameraRightMarker,
-                    ..Default::default()
-                })
-                .insert(Eye::Right)
-                .id();
-        })
-        .insert(Transform::default())
-        .insert(GlobalTransform::default())
-        .insert(Self {});
-    }
-}
-
-trait Vec3Conv {
-    fn to_vec3(&self) -> Vec3;
-}
-
-impl Vec3Conv for Vector3f {
-    fn to_vec3(&self) -> Vec3 {
-        Vec3::new(self.x, self.y, self.z)
-    }
-}
-
-trait QuatConv {
-    fn to_quat(&self) -> Quat;
-}
-
-impl QuatConv for Quaternionf {
-    fn to_quat(&self) -> Quat {
-        Quat::from_xyzw(self.x, self.y, self.z, self.w)
-    }
-}
-
-pub fn update_xrcamera_view(
-    mut cam: Query<(&mut XRProjection, &mut Transform, &Eye)>,
-    mut xr_cam: Query<(&mut Transform, &XrCameras), Without<Eye>>,
-    views: Res<Vec<View>>,
-) {
-    let midpoint = (views.get(0).unwrap().pose.position.to_vec3()
-        + views.get(1).unwrap().pose.position.to_vec3())
-        / 2.;
-    xr_cam.single_mut().0.translation = midpoint;
-
-    let left_rot = views.get(0).unwrap().pose.orientation.to_quat();
-    let right_rot = views.get(1).unwrap().pose.orientation.to_quat();
-    let mid_rot = if left_rot.dot(right_rot) >= 0. {
-        left_rot.slerp(right_rot, 0.5)
-    } else {
-        right_rot.slerp(left_rot, 0.5)
-    };
-    let mid_rot_inverse = mid_rot.inverse();
-    xr_cam.single_mut().0.rotation = mid_rot;
-
-    for (mut projection, mut transform, eye) in cam.iter_mut() {
-        let view_idx = match eye {
-            Eye::Left => 0,
-            Eye::Right => 1,
-        };
-        let view = views.get(view_idx).unwrap();
-
-        projection.fov = view.fov;
-
-        transform.rotation = mid_rot_inverse * view.pose.orientation.to_quat();
-        let pos = view.pose.position;
-        transform.translation = pos.to_vec3() - midpoint;
     }
 }

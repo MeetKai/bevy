@@ -192,7 +192,6 @@ fn prepare_view_targets(
                     .get_texture_view(&windows, &images, &manual_texture_views)
             {
                 let sampled_target = if msaa.samples > 1 {
-                    dbg!("msaa");
                     let sampled_texture = sampled_textures
                         .entry(camera.target.clone())
                         .or_insert_with(|| {

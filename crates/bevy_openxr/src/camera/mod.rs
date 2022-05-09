@@ -1,14 +1,25 @@
-use bevy_ecs::prelude::{Bundle, Component, ReflectComponent};
-use bevy_math::{Mat4, Vec4};
-use bevy_reflect::Reflect;
+use bevy_ecs::{
+    prelude::{Bundle, Component, ReflectComponent, Without},
+    system::{Query, Res},
+    world::EntityMut,
+};
+use bevy_hierarchy::BuildWorldChildren;
+use bevy_math::{Mat4, Quat, Vec3, Vec4};
+use bevy_reflect::{Reflect, Uuid};
 use bevy_render::{
-    camera::{Camera, CameraProjection, DepthCalculation},
+    camera::{Camera, CameraProjection, DepthCalculation, RenderTarget},
     primitives::Frustum,
     view::VisibleEntities,
 };
-use bevy_transform::components::{GlobalTransform, Transform};
+use bevy_transform::{
+    components::{GlobalTransform, Transform},
+    TransformBundle,
+};
 //  mostly copied from https://github.com/blaind/bevy_openxr/tree/main/crates/bevy_openxr/src/render_graph/camera
-use openxr::Fovf;
+use openxr::{Fovf, Quaternionf, Vector3f, View};
+
+use self::xrcameraplugin::{XrCameraLeftMarker, XrCameraRightMarker};
+pub mod xrcameraplugin;
 
 #[derive(Bundle, Default)]
 pub struct XRCameraBundle<M: Component> {
@@ -163,4 +174,118 @@ impl CameraProjection for XRProjection {
     }
 }
 
-pub mod xrcameraplugin;
+pub fn update_xrcamera_view(
+    mut cam: Query<(&mut XRProjection, &mut Transform, &Eye)>,
+    mut xr_cam: Query<(&mut Transform, &XrCameras), Without<Eye>>,
+    views: Res<Vec<View>>,
+) {
+    let midpoint = (views.get(0).unwrap().pose.position.to_vec3()
+        + views.get(1).unwrap().pose.position.to_vec3())
+        / 2.;
+    xr_cam.single_mut().0.translation = midpoint;
+
+    let left_rot = views.get(0).unwrap().pose.orientation.to_quat();
+    let right_rot = views.get(1).unwrap().pose.orientation.to_quat();
+    let mid_rot = if left_rot.dot(right_rot) >= 0. {
+        left_rot.slerp(right_rot, 0.5)
+    } else {
+        right_rot.slerp(left_rot, 0.5)
+    };
+    let mid_rot_inverse = mid_rot.inverse();
+    xr_cam.single_mut().0.rotation = mid_rot;
+
+    /*
+        TODO: figure out transform hierarchy for XrCameras
+        maybe have a parent object:
+        XrPlayer -- transform set by developer
+        |
+        V
+        XrCameras -- transform set as midpoint/midrotation of two openXR views,
+        |           used for developer to understand relative head position
+        |
+        V
+        [XrCamera::left, XrCamera::right] -- transform set as individual views, used for rendering
+
+    */
+    for (mut projection, mut transform, eye) in cam.iter_mut() {
+        let view_idx = match eye {
+            Eye::Left => 0,
+            Eye::Right => 1,
+        };
+        let view = views.get(view_idx).unwrap();
+
+        projection.fov = view.fov;
+
+        transform.rotation = mid_rot_inverse * view.pose.orientation.to_quat();
+        let pos = view.pose.position;
+        transform.translation = pos.to_vec3() - midpoint;
+    }
+}
+
+#[derive(Component)]
+pub struct XrPawn {}
+
+impl XrPawn {
+    pub fn spawn(mut e: EntityMut, left_id: Uuid, right_id: Uuid) {
+        e.with_children(|pawn| {
+            pawn.spawn()
+                .insert(XrCameras {})
+                .insert_bundle(TransformBundle::default())
+                .with_children(|parent| {
+                    let left = parent
+                        .spawn_bundle(XRCameraBundle {
+                            camera: Camera {
+                                target: RenderTarget::TextureView(left_id),
+                                ..Default::default()
+                            },
+                            marker: XrCameraLeftMarker,
+                            ..Default::default()
+                        })
+                        .insert(Eye::Left)
+                        .id();
+                    let right = parent
+                        .spawn_bundle(XRCameraBundle {
+                            camera: Camera {
+                                target: RenderTarget::TextureView(right_id),
+                                ..Default::default()
+                            },
+                            marker: XrCameraRightMarker,
+                            ..Default::default()
+                        })
+                        .insert(Eye::Right)
+                        .id();
+                });
+        })
+        .insert(Self {})
+        .insert_bundle(TransformBundle::default());
+    }
+}
+
+#[derive(Component)]
+pub struct XrCameras {}
+
+#[derive(Component, Debug)]
+pub enum Eye {
+    Left,
+    Right,
+}
+
+pub trait Vec3Conv {
+    fn to_vec3(&self) -> Vec3;
+}
+
+impl Vec3Conv for Vector3f {
+    fn to_vec3(&self) -> Vec3 {
+        Vec3::new(self.x, self.y, self.z)
+    }
+}
+
+pub trait QuatConv {
+    fn to_quat(&self) -> Quat;
+}
+
+impl QuatConv for Quaternionf {
+    fn to_quat(&self) -> Quat {
+        Quat::from_xyzw(self.x, self.y, self.z, self.w)
+    }
+}

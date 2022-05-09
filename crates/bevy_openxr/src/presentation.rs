@@ -58,26 +58,16 @@ pub fn create_graphics_context(
                 .map_err(Box::new)?;
         instance_extensions
             .push(CStr::from_bytes_with_nul(b"VK_KHR_portability_enumeration\0").unwrap());
-        dbg!(&instance_extensions);
         let instance_extensions_ptrs = instance_extensions
             .iter()
             .map(|x| x.as_ptr())
             .collect::<Vec<_>>();
-
-        dbg!(&instance_extensions_ptrs);
 
         let create_info = vk::InstanceCreateInfo::builder()
             .application_info(&vk_app_info)
             .enabled_extension_names(&instance_extensions_ptrs)
             .flags(InstanceCreateFlags::ENUMERATE_PORTABILITY_KHR)
             .build();
-
-        dbg!(&create_info);
-        dbg!(&create_info as *const _);
-
-        // let create_info = VulkanInstanceCreateInfoKHR {
-        //     create_flags: create_info.flags,
-        // };
 
         let vk_instance = unsafe {
             let vk_instance = instance

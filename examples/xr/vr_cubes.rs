@@ -1,6 +1,6 @@
 use bevy::{
     app::AppExit,
-    openxr::{OpenXrPlugin, XrCameras, OCULUS_TOUCH_PROFILE},
+    openxr::{camera::XrPawn, OpenXrPlugin, OCULUS_TOUCH_PROFILE},
     prelude::*,
     utils::Duration,
     xr::{
@@ -23,13 +23,26 @@ fn main() {
         .run();
 }
 
-fn dummy() {}
-
-fn init_camera_position(mut q: Query<(&mut Transform, &XrCameras)>) {
-    for (mut transform, _) in q.iter_mut() {
-        transform.translation = Vec3::new(1., 0., 1.);
+fn dummy(
+    mut q: Query<(&mut Transform, &GlobalTransform, &XrPawn)>,
+    cube: Query<(&Transform, &CubeMarker), Without<XrPawn>>,
+) {
+    if let Ok((cube, _)) = cube.get_single() {
+        for (mut cam, global, _) in q.iter_mut() {
+            // cam.look_at(cube.translation, Vec3::X);
+            cam.translation = Vec3::new(10., 10., 10.);
+        }
     }
 }
+
+fn init_camera_position(mut q: Query<(&mut Transform, &mut GlobalTransform, &XrPawn)>) {
+    for (mut transform, mut global, _) in q.iter_mut() {
+        transform.translation = Vec3::new(20., 20., 20.);
+    }
+}
+
+#[derive(Component)]
+struct CubeMarker;
 
 fn startup(
     mut c: Commands,
@@ -83,7 +96,8 @@ fn startup(
         material: materials.add(Color::rgb(0.8, 0.7, 0.6).into()),
         transform: Transform::from_xyz(0.0, 0.5, 0.0),
         ..Default::default()
-    });
+    })
+    .insert(CubeMarker);
 
     let oculus_profile = XrProfileDescriptor {
         profile: OCULUS_TOUCH_PROFILE.into(),

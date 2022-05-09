@@ -16,7 +16,7 @@ use bevy_render::{
 use bevy_transform::TransformSystem;
 use bevy_window::ModifiesWindows;
 
-use super::XRProjection;
+use super::{XRProjection, update_xrcamera_view};
 
 #[derive(Component, Default)]
 pub struct XrCameraLeftMarker;
@@ -61,6 +61,8 @@ impl Plugin for XrCameraPlugin {
                 //  ensures we execute at the right time without adding more labels
                 .before(VisibilitySystems::UpdatePerspectiveFrusta),
         );
+
+        app.add_system_to_stage(CoreStage::PreUpdate, update_xrcamera_view);
     }
 }
 
