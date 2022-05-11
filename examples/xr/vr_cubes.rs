@@ -27,9 +27,9 @@ fn dummy(
     mut q: Query<(&mut Transform, &GlobalTransform, &XrPawn)>,
     cube: Query<(&Transform, &CubeMarker), Without<XrPawn>>,
 ) {
-    if let Ok((_cube, _)) = cube.get_single() {
+    if let Ok((cube, _)) = cube.get_single() {
         for (mut cam, _global, _) in q.iter_mut() {
-            // cam.look_at(cube.translation, Vec3::X);
+            cam.look_at(cube.translation, Vec3::Y);
             cam.translation = Vec3::new(10., 10., 10.);
         }
     }

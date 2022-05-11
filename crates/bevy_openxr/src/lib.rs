@@ -28,6 +28,7 @@ use openxr::{self as xr, sys};
 use parking_lot::RwLock;
 use presentation::GraphicsContextHandles;
 use serde::{Deserialize, Serialize};
+use xr::ActiveActionSet;
 
 use std::{error::Error, ops::Deref, sync::Arc, thread, time::Duration};
 use wgpu::{TextureUsages, TextureViewDescriptor};
@@ -570,6 +571,9 @@ fn runner(mut app: App) {
         }
 
         let frame_state = frame_waiter.wait().unwrap();
+        session
+            .sync_actions(&[(ActiveActionSet::new(&interaction_context.action_set.lock()))])
+            .unwrap();
 
         match &mut frame_stream {
             FrameStream::Vulkan(frame_stream) => frame_stream.begin().unwrap(),
