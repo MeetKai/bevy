@@ -29,15 +29,16 @@ fn dummy(
 ) {
     if let Ok((cube, _)) = cube.get_single() {
         for (mut cam, _global, _) in q.iter_mut() {
-            cam.look_at(cube.translation, Vec3::Y);
-            cam.translation = Vec3::new(10., 10., 10.);
+            let mut cube_proj = cube.translation;
+            cube_proj.y = cam.translation.y;
+            cam.look_at(cube_proj, Vec3::Y);
         }
     }
 }
 
 fn init_camera_position(mut q: Query<(&mut Transform, &mut GlobalTransform, &XrPawn)>) {
     for (mut transform, _global, _) in q.iter_mut() {
-        transform.translation = Vec3::new(20., 20., 20.);
+        transform.translation = Vec3::new(1., 0., 1.);
     }
 }
 
