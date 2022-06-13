@@ -1,4 +1,5 @@
-#import bevy_pbr::mesh_struct
+#import bevy_pbr::mesh_view_types
+#import bevy_pbr::mesh_types
 
 // NOTE: Keep in sync with pbr.wgsl
 struct View {

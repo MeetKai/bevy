@@ -1,5 +1,5 @@
-#import bevy_sprite::mesh2d_view_bind_group
-#import bevy_sprite::mesh2d_struct
+#import bevy_sprite::mesh2d_view_bindings
+#import bevy_sprite::mesh2d_bindings
 
 struct Vertex {
     @location(0) position: vec3<f32>,
@@ -7,6 +7,9 @@ struct Vertex {
     @location(2) uv: vec2<f32>,
 #ifdef VERTEX_TANGENTS
     @location(3) tangent: vec4<f32>,
+#endif
+#ifdef VERTEX_COLORS
+    [[location(4)]] colors: vec4<f32>;
 #endif
 };
 
@@ -17,6 +20,9 @@ struct VertexOutput {
     @location(2) uv: vec2<f32>,
 #ifdef VERTEX_TANGENTS
     @location(3) world_tangent: vec4<f32>,
+#endif
+#ifdef VERTEX_COLORS
+    [[location(4)]] colors: vec4<f32>;
 #endif
 };
 
@@ -48,6 +54,9 @@ fn vertex_fn(vertex: Vertex) -> VertexOutput {
         ) * vertex.tangent.xyz,
         vertex.tangent.w
     );
+#endif
+#ifdef VERTEX_COLORS
+    vout.colors = vertex.colors;
 #endif
     return vout;
 }

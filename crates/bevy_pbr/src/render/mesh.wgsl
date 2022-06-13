@@ -1,5 +1,5 @@
-#import bevy_pbr::mesh_view_bind_group
-#import bevy_pbr::mesh_struct
+#import bevy_pbr::mesh_view_bindings
+#import bevy_pbr::mesh_bindings
 
 struct Vertex {
     @location(0) position: vec3<f32>,
@@ -8,9 +8,12 @@ struct Vertex {
 #ifdef VERTEX_TANGENTS
     @location(3) tangent: vec4<f32>,
 #endif
+#ifdef VERTEX_COLORS
+    @location(4) color: vec4<f32>;
+#endif
 #ifdef SKINNED
-    @location(4) joint_indices: vec4<u32>,
-    @location(5) joint_weights: vec4<f32>,
+    @location(5) joint_indices: vec4<u32>,
+    @location(6) joint_weights: vec4<f32>,
 #endif
 };
 
@@ -22,17 +25,10 @@ struct VertexOutput {
 #ifdef VERTEX_TANGENTS
     @location(3) world_tangent: vec4<f32>,
 #endif
-};
-
-@group(2)
-@binding(0)
-var<uniform> mesh: Mesh;
-#ifdef SKINNED
-@group(2)
-@binding(1)
-var<uniform> joint_matrices: SkinnedMesh;
-#import bevy_pbr::skinning
+#ifdef VERTEX_COLORS
+    @location(4) color: vec4<f32>;
 #endif
+};
 
 @vertex
 fn vertex_fn(vertex: Vertex) -> VertexOutput {
@@ -62,6 +58,9 @@ fn vertex_fn(vertex: Vertex) -> VertexOutput {
     );
 #endif
 #endif
+#ifdef VERTEX_COLORS
+    out.color = vertex.color;
+#endif
 
     vout.uv = vertex.uv;
     vout.clip_position = view.view_proj * vout.world_position;
@@ -76,9 +75,16 @@ struct FragmentInput {
 #ifdef VERTEX_TANGENTS
     @location(3) world_tangent: vec4<f32>,
 #endif
+#ifdef VERTEX_COLORS
+    [[location(4)]] color: vec4<f32>;
+#endif
 };
 
 @fragment
 fn fragment_fn(vin: FragmentInput) -> @location(0) vec4<f32> {
+#ifdef VERTEX_COLORS
+    return vin.color;
+#else
     return vec4<f32>(1.0, 0.0, 1.0, 1.0);
+#endif
 }

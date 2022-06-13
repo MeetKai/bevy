@@ -4,7 +4,7 @@ use std::{
     ptr::NonNull,
 };
 
-use crate::ptr::{OwningPtr, Ptr, PtrMut};
+use bevy_ptr::{OwningPtr, Ptr, PtrMut};
 
 /// A flat, type-erased data storage type
 ///
@@ -16,7 +16,8 @@ pub struct BlobVec {
     len: usize,
     data: NonNull<u8>,
     swap_scratch: NonNull<u8>,
-    drop: unsafe fn(OwningPtr<'_>),
+    // None if the underlying type doesn't need to be dropped
+    drop: Option<unsafe fn(OwningPtr<'_>)>,
 }
 
 // We want to ignore the `drop` field in our `Debug` impl
@@ -36,9 +37,13 @@ impl BlobVec {
     /// # Safety
     ///
     /// `drop` should be safe to call with an [`OwningPtr`] pointing to any item that's been pushed into this [`BlobVec`].
+    ///
+    /// If `drop` is `None`, the items will be leaked. This should generally be set as None based on [`needs_drop`].
+    ///
+    /// [`needs_drop`]: core::mem::needs_drop
     pub unsafe fn new(
         item_layout: Layout,
-        drop: unsafe fn(OwningPtr<'_>),
+        drop: Option<unsafe fn(OwningPtr<'_>)>,
         capacity: usize,
     ) -> BlobVec {
         if item_layout.size() == 0 {
@@ -81,6 +86,11 @@ impl BlobVec {
         self.capacity
     }
 
+    #[inline]
+    pub fn layout(&self) -> Layout {
+        self.item_layout
+    }
+
     pub fn reserve_exact(&mut self, additional: usize) {
         let available_space = self.capacity - self.len;
         if available_space < additional {
@@ -101,7 +111,7 @@ impl BlobVec {
                 std::alloc::alloc(new_layout)
             } else {
                 std::alloc::realloc(
-                    self.get_ptr_mut().inner().as_ptr(),
+                    self.get_ptr_mut().as_ptr(),
                     array_layout(&self.item_layout, self.capacity)
                         .expect("array layout should be valid"),
                     new_layout.size(),
@@ -121,11 +131,7 @@ impl BlobVec {
     pub unsafe fn initialize_unchecked(&mut self, index: usize, value: OwningPtr<'_>) {
         debug_assert!(index < self.len());
         let ptr = self.get_unchecked_mut(index);
-        std::ptr::copy_nonoverlapping::<u8>(
-            value.inner().as_ptr(),
-            ptr.inner().as_ptr(),
-            self.item_layout.size(),
-        );
+        std::ptr::copy_nonoverlapping::<u8>(value.as_ptr(), ptr.as_ptr(), self.item_layout.size());
     }
 
     /// # Safety
@@ -142,15 +148,13 @@ impl BlobVec {
         // in the collection), so we get a double drop. To prevent that, we set len to 0 until we're
         // done.
         let old_len = self.len;
-        let ptr = self.get_unchecked_mut(index).promote().inner();
+        let ptr = self.get_unchecked_mut(index).promote().as_ptr();
         self.len = 0;
         // Drop the old value, then write back, justifying the promotion
-        (self.drop)(OwningPtr::new(ptr));
-        std::ptr::copy_nonoverlapping::<u8>(
-            value.inner().as_ptr(),
-            ptr.as_ptr(),
-            self.item_layout.size(),
-        );
+        if let Some(drop) = self.drop {
+            (drop)(OwningPtr::new(NonNull::new_unchecked(ptr)));
+        }
+        std::ptr::copy_nonoverlapping::<u8>(value.as_ptr(), ptr, self.item_layout.size());
         self.len = old_len;
     }
 
@@ -192,13 +196,13 @@ impl BlobVec {
         let last = self.len - 1;
         let swap_scratch = self.swap_scratch.as_ptr();
         std::ptr::copy_nonoverlapping::<u8>(
-            self.get_unchecked_mut(index).inner().as_ptr(),
+            self.get_unchecked_mut(index).as_ptr(),
             swap_scratch,
             self.item_layout.size(),
         );
         std::ptr::copy::<u8>(
-            self.get_unchecked_mut(last).inner().as_ptr(),
-            self.get_unchecked_mut(index).inner().as_ptr(),
+            self.get_unchecked_mut(last).as_ptr(),
+            self.get_unchecked_mut(index).as_ptr(),
             self.item_layout.size(),
         );
         self.len -= 1;
@@ -212,7 +216,9 @@ impl BlobVec {
         debug_assert!(index < self.len());
         let drop = self.drop;
         let value = self.swap_remove_and_forget_unchecked(index);
-        (drop)(value);
+        if let Some(drop) = drop {
+            (drop)(value);
+        }
     }
 
     /// # Safety
@@ -220,7 +226,7 @@ impl BlobVec {
     #[inline]
     pub unsafe fn get_unchecked(&self, index: usize) -> Ptr<'_> {
         debug_assert!(index < self.len());
-        self.get_ptr().add(index * self.item_layout.size())
+        self.get_ptr().byte_add(index * self.item_layout.size())
     }
 
     /// # Safety
@@ -229,7 +235,7 @@ impl BlobVec {
     pub unsafe fn get_unchecked_mut(&mut self, index: usize) -> PtrMut<'_> {
         debug_assert!(index < self.len());
         let layout_size = self.item_layout.size();
-        self.get_ptr_mut().add(index * layout_size)
+        self.get_ptr_mut().byte_add(index * layout_size)
     }
 
     /// Gets a [`Ptr`] to the start of the vec
@@ -260,14 +266,15 @@ impl BlobVec {
         // We set len to 0 _before_ dropping elements for unwind safety. This ensures we don't
         // accidentally drop elements twice in the event of a drop impl panicking.
         self.len = 0;
-        let drop = self.drop;
-        let layout_size = self.item_layout.size();
-        for i in 0..len {
-            unsafe {
-                // NOTE: this doesn't use self.get_unchecked(i) because the debug_assert on index
-                // will panic here due to self.len being set to 0
-                let ptr = self.get_ptr_mut().add(i * layout_size).promote();
-                (drop)(ptr);
+        if let Some(drop) = self.drop {
+            let layout_size = self.item_layout.size();
+            for i in 0..len {
+                unsafe {
+                    // NOTE: this doesn't use self.get_unchecked(i) because the debug_assert on index
+                    // will panic here due to self.len being set to 0
+                    let ptr = self.get_ptr_mut().byte_add(i * layout_size).promote();
+                    (drop)(ptr);
+                }
             }
         }
     }
@@ -280,7 +287,7 @@ impl Drop for BlobVec {
             array_layout(&self.item_layout, self.capacity).expect("array layout should be valid");
         if array_layout.size() > 0 {
             unsafe {
-                std::alloc::dealloc(self.get_ptr_mut().inner().as_ptr(), array_layout);
+                std::alloc::dealloc(self.get_ptr_mut().as_ptr(), array_layout);
                 std::alloc::dealloc(self.swap_scratch.as_ptr(), self.item_layout);
             }
         }
@@ -350,7 +357,7 @@ mod tests {
 
     // SAFETY: The pointer points to a valid value of type `T` and it is safe to drop this value.
     unsafe fn drop_ptr<T>(x: OwningPtr<'_>) {
-        x.inner().cast::<T>().as_ptr().drop_in_place()
+        x.drop_as::<T>();
     }
 
     /// # Safety
@@ -383,8 +390,8 @@ mod tests {
     #[test]
     fn resize_test() {
         let item_layout = Layout::new::<usize>();
-        let drop = drop_ptr::<usize>;
-        let mut blob_vec = unsafe { BlobVec::new(item_layout, drop, 64) };
+        // usize doesn't need dropping
+        let mut blob_vec = unsafe { BlobVec::new(item_layout, None, 64) };
         unsafe {
             for i in 0..1_000 {
                 push(&mut blob_vec, i as usize);
@@ -414,7 +421,7 @@ mod tests {
         {
             let item_layout = Layout::new::<Foo>();
             let drop = drop_ptr::<Foo>;
-            let mut blob_vec = unsafe { BlobVec::new(item_layout, drop, 2) };
+            let mut blob_vec = unsafe { BlobVec::new(item_layout, Some(drop), 2) };
             assert_eq!(blob_vec.capacity(), 2);
             unsafe {
                 let foo1 = Foo {
@@ -474,6 +481,6 @@ mod tests {
     fn blob_vec_drop_empty_capacity() {
         let item_layout = Layout::new::<Foo>();
         let drop = drop_ptr::<Foo>;
-        let _ = unsafe { BlobVec::new(item_layout, drop, 0) };
+        let _ = unsafe { BlobVec::new(item_layout, Some(drop), 0) };
     }
 }

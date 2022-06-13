@@ -2,7 +2,6 @@
 
 Hey, so you're interested in contributing to Bevy!
 Feel free to pitch in on whatever interests you and we'll be happy to help you contribute.
-Ultimately @cart has final say on which changes are merged, but you're welcome to try and convince him.
 
 Check out our community's [Code of Conduct](https://github.com/bevyengine/bevy/blob/main/CODE_OF_CONDUCT.md) and feel free to say hi on [Discord](https://discord.gg/bevy) if you'd like.
 It's a nice place to chat about Bevy development, ask questions, and get to know the other contributors and users in a less formal setting.
@@ -199,9 +198,9 @@ Check out our [plugin guidelines](https://github.com/bevyengine/bevy/blob/main/d
 
 ### Fixing bugs
 
-Bugs in Bevy (or the associated website / book) are filed on the issue tracker using the [`bug`](https://github.com/bevyengine/bevy/issues?q=is%3Aissue+is%3Aopen+label%3Abug) label.
+Bugs in Bevy (or the associated website / book) are filed on the issue tracker using the [`C-Bug`](https://github.com/bevyengine/bevy/issues?q=is%3Aissue+is%3Aopen+label%3AC-Bug) label.
 
-If you're looking for an easy place to start, take a look at the [`E-Good-First-Issue`](https://github.com/bevyengine/bevy/issues?q=is%3Aopen+is%3Aissue+label%3AE-Good-First-Issue) label, and feel free to ask questions on that issue's thread in question or on Discord.
+If you're looking for an easy place to start, take a look at the [`D-Good-First-Issue`](https://github.com/bevyengine/bevy/issues?q=is%3Aopen+is%3Aissue+label%3AD-Good-First-Issue) label, and feel free to ask questions on that issue's thread in question or on Discord.
 You don't need anyone's permission to try fixing a bug or adding a simple feature, but stating that you'd like to tackle an issue can be helpful to avoid duplicated work.
 
 When you make a pull request that fixes an issue, include a line that says `Fixes #X` (or "Closes"), where `X` is the issue number.
@@ -280,10 +279,13 @@ If you're new to Bevy, here's the workflow we use:
 1. Fork the `bevyengine/bevy` repository on GitHub. You'll need to create a GitHub account if you don't have one already.
 2. Make your changes in a local clone of your fork, typically in its own new branch.
    1. Try to split your work into separate commits, each with a distinct purpose. Be particularly mindful of this when responding to reviews so it's easy to see what's changed.
-3. To test CI validations locally, run the `cargo run -p ci` command. You can also run sub-commands manually:
-    1. `cargo fmt --all -- --check` (remove `--check` to let the command fix found problems)
-    2. `cargo clippy --workspace --all-targets --all-features -- -D warnings -A clippy::type_complexity`
-    3. `cargo test --all-targets --workspace`
+3. To test CI validations locally, run the `cargo run -p ci` command. This will run most checks that happen in CI, but can take some time. You can also run sub-commands to iterate faster depending on what you're contributing:
+    * `cargo run -p ci -- lints` - to run formatting and clippy
+    * `cargo run -p ci -- test` - to run tests
+    * `cargo run -p ci -- doc` - to run doc tests and doc checks
+    * `cargo run -p ci -- compile` - to check that everything that must compile still does (examples and benches), and that some that shouldn't still don't ([`crates/bevy_ecs_compile_fail_tests`](./crates/bevy_ecs_compile_fail_tests))
+    * to get more informations on commands available and what is run, check the [tools/ci crate](./tools/ci)
+
 4. When working with Markdown (`.md`) files, Bevy's CI will check markdown files (like this one) using [markdownlint](https://github.com/DavidAnson/markdownlint).
 To locally lint your files using the same workflow as our CI:
    1. Install [markdownlint-cli](https://github.com/igorshubovych/markdownlint-cli).

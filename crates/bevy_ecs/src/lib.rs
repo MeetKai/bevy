@@ -1,12 +1,14 @@
 #![doc = include_str!("../README.md")]
 
+#[cfg(target_pointer_width = "16")]
+compile_error!("bevy_ecs cannot safely compile for a 16-bit platform.");
+
 pub mod archetype;
 pub mod bundle;
 pub mod change_detection;
 pub mod component;
 pub mod entity;
 pub mod event;
-pub mod ptr;
 pub mod query;
 #[cfg(feature = "bevy_reflect")]
 pub mod reflect;
@@ -14,6 +16,8 @@ pub mod schedule;
 pub mod storage;
 pub mod system;
 pub mod world;
+
+pub use bevy_ptr as ptr;
 
 /// Most commonly used re-exported types.
 pub mod prelude {
@@ -35,7 +39,7 @@ pub mod prelude {
         },
         system::{
             Commands, In, IntoChainSystem, IntoExclusiveSystem, IntoSystem, Local, NonSend,
-            NonSendMut, ParamSet, Query, RemovedComponents, Res, ResMut, System,
+            NonSendMut, ParallelCommands, ParamSet, Query, RemovedComponents, Res, ResMut, System,
             SystemParamFunction,
         },
         world::{FromWorld, Mut, World},
@@ -55,7 +59,7 @@ mod tests {
         query::{Added, ChangeTrackers, Changed, FilteredAccess, With, Without, WorldQuery},
         world::{Mut, World},
     };
-    use bevy_tasks::TaskPool;
+    use bevy_tasks::{ComputeTaskPool, TaskPool};
     use std::{
         any::TypeId,
         sync::{
@@ -371,8 +375,8 @@ mod tests {
 
     #[test]
     fn par_for_each_dense() {
+        ComputeTaskPool::init(TaskPool::default);
         let mut world = World::new();
-        let task_pool = TaskPool::default();
         let e1 = world.spawn().insert(A(1)).id();
         let e2 = world.spawn().insert(A(2)).id();
         let e3 = world.spawn().insert(A(3)).id();
@@ -381,7 +385,7 @@ mod tests {
         let results = Arc::new(Mutex::new(Vec::new()));
         world
             .query::<(Entity, &A)>()
-            .par_for_each(&world, &task_pool, 2, |(e, &A(i))| {
+            .par_for_each(&world, 2, |(e, &A(i))| {
                 results.lock().unwrap().push((e, i));
             });
         results.lock().unwrap().sort();
@@ -393,9 +397,8 @@ mod tests {
 
     #[test]
     fn par_for_each_sparse() {
+        ComputeTaskPool::init(TaskPool::default);
         let mut world = World::new();
-
-        let task_pool = TaskPool::default();
         let e1 = world.spawn().insert(SparseStored(1)).id();
         let e2 = world.spawn().insert(SparseStored(2)).id();
         let e3 = world.spawn().insert(SparseStored(3)).id();
@@ -404,7 +407,6 @@ mod tests {
         let results = Arc::new(Mutex::new(Vec::new()));
         world.query::<(Entity, &SparseStored)>().par_for_each(
             &world,
-            &task_pool,
             2,
             |(e, &SparseStored(i))| results.lock().unwrap().push((e, i)),
         );
