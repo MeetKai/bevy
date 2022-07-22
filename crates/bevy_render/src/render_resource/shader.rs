@@ -1,4 +1,4 @@
-use bevy_asset::{AssetLoader, Handle, LoadContext, LoadedAsset};
+use bevy_asset::{AssetLoader, AssetPath, Handle, LoadContext, LoadedAsset};
 use bevy_reflect::{TypeUuid, Uuid};
 use bevy_utils::{tracing::error, BoxedFuture, HashMap};
 use naga::back::wgsl::WriterFlags;
@@ -518,6 +518,34 @@ impl ShaderProcessor {
     }
 }
 
+/// A reference to a shader asset.
+pub enum ShaderRef {
+    /// Use the "default" shader for the current context.
+    Default,
+    /// A handle to a shader stored in the [`Assets<Shader>`](bevy_asset::Assets) resource
+    Handle(Handle<Shader>),
+    /// An asset path leading to a shader
+    Path(AssetPath<'static>),
+}
+
+impl From<Handle<Shader>> for ShaderRef {
+    fn from(handle: Handle<Shader>) -> Self {
+        Self::Handle(handle)
+    }
+}
+
+impl From<AssetPath<'static>> for ShaderRef {
+    fn from(path: AssetPath<'static>) -> Self {
+        Self::Path(path)
+    }
+}
+
+impl From<&'static str> for ShaderRef {
+    fn from(path: &'static str) -> Self {
+        Self::Path(AssetPath::from(path))
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use bevy_asset::{Handle, HandleUntyped};
@@ -532,23 +560,23 @@ struct View {
     view_proj: mat4x4<f32>,
     world_position: vec3<f32>,
 };
-[[group(0), binding(0)]]
+@group(0) @binding(0)
 var<uniform> view: View;
 
 #ifdef TEXTURE
-[[group(1), binding(0)]]
+@group(1) @binding(0)
 var sprite_texture: texture_2d<f32>;
 #endif
 
 struct VertexOutput {
-    [[location(0)]] uv: vec2<f32>,
-    [[builtin(position)]] position: vec4<f32>;
+    @location(0) uv: vec2<f32>,
+    @builtin(position) position: vec4<f32>,
 };
 
-[[stage(vertex)]]
+@vertex
 fn vertex(
-    [[location(0)]] vertex_position: vec3<f32>,
-    [[location(1)]] vertex_uv: vec2<f32>
+    @location(0) vertex_position: vec3<f32>,
+    @location(1) vertex_uv: vec2<f32>
 ) -> VertexOutput {
     var out: VertexOutput;
     out.uv = vertex_uv;
@@ -560,28 +588,28 @@ fn vertex(
     const WGSL_ELSE: &str = r"
 struct View {
     view_proj: mat4x4<f32>,
-    world_position: vec3<f32>;
+    world_position: vec3<f32>,
 };
-[[group(0), binding(0)]]
+@group(0) @binding(0)
 var<uniform> view: View;
 
 #ifdef TEXTURE
-[[group(1), binding(0)]]
+@group(1) @binding(0)
 var sprite_texture: texture_2d<f32>;
 #else
-[[group(1), binding(0)]]
+@group(1) @binding(0)
 var sprite_texture: texture_2d_array<f32>;
 #endif
 
 struct VertexOutput {
-    [[location(0)]] uv: vec2<f32>,
-    [[builtin(position)]] position: vec4<f32>;
+    @location(0) uv: vec2<f32>,
+    @builtin(position) position: vec4<f32>,
 };
 
-[[stage(vertex)]]
+@vertex
 fn vertex(
-    [[location(0)]] vertex_position: vec3<f32>,
-    [[location(1)]] vertex_uv: vec2<f32>
+    @location(0) vertex_position: vec3<f32>,
+    @location(1) vertex_uv: vec2<f32>
 ) -> VertexOutput {
     var out: VertexOutput;
     out.uv = vertex_uv;
@@ -593,27 +621,27 @@ fn vertex(
     const WGSL_NESTED_IFDEF: &str = r"
 struct View {
     view_proj: mat4x4<f32>,
-    world_position: vec3<f32>;
+    world_position: vec3<f32>,
 };
-[[group(0), binding(0)]]
+@group(0) @binding(0)
 var<uniform> view: View;
 
 # ifdef TEXTURE
 # ifdef ATTRIBUTE
-[[group(1), binding(0)]]
+@group(1) @binding(0)
 var sprite_texture: texture_2d<f32>;
 # endif
 # endif
 
 struct VertexOutput {
-    [[location(0)]] uv: vec2<f32>,
-    [[builtin(position)]] position: vec4<f32>;
+    @location(0) uv: vec2<f32>,
+    @builtin(position) position: vec4<f32>,
 };
 
-[[stage(vertex)]]
+@vertex
 fn vertex(
-    [[location(0)]] vertex_position: vec3<f32>,
-    [[location(1)]] vertex_uv: vec2<f32>
+    @location(0) vertex_position: vec3<f32>,
+    @location(1) vertex_uv: vec2<f32>
 ) -> VertexOutput {
     var out: VertexOutput;
     out.uv = vertex_uv;
@@ -625,30 +653,30 @@ fn vertex(
     const WGSL_NESTED_IFDEF_ELSE: &str = r"
 struct View {
     view_proj: mat4x4<f32>,
-    world_position: vec3<f32>;
+    world_position: vec3<f32>,
 };
-[[group(0), binding(0)]]
+@group(0) @binding(0)
 var<uniform> view: View;
 
 # ifdef TEXTURE
 # ifdef ATTRIBUTE
-[[group(1), binding(0)]]
+@group(1) @binding(0)
 var sprite_texture: texture_2d<f32>;
 #else
-[[group(1), binding(0)]]
+@group(1) @binding(0)
 var sprite_texture: texture_2d_array<f32>;
 # endif
 # endif
 
 struct VertexOutput {
-    [[location(0)]] uv: vec2<f32>,
-    [[builtin(position)]] position: vec4<f32>;
+    @location(0) uv: vec2<f32>,
+    @builtin(position) position: vec4<f32>,
 };
 
-[[stage(vertex)]]
+@vertex
 fn vertex(
-    [[location(0)]] vertex_position: vec3<f32>,
-    [[location(1)]] vertex_uv: vec2<f32>
+    @location(0) vertex_position: vec3<f32>,
+    @location(1) vertex_uv: vec2<f32>
 ) -> VertexOutput {
     var out: VertexOutput;
     out.uv = vertex_uv;
@@ -663,23 +691,23 @@ fn vertex(
     const EXPECTED: &str = r"
 struct View {
     view_proj: mat4x4<f32>,
-    world_position: vec3<f32>;
+    world_position: vec3<f32>,
 };
-[[group(0), binding(0)]]
+@group(0) @binding(0)
 var<uniform> view: View;
 
-[[group(1), binding(0)]]
+@group(1) @binding(0)
 var sprite_texture: texture_2d<f32>;
 
 struct VertexOutput {
-    [[location(0)]] uv: vec2<f32>,
-    [[builtin(position)]] position: vec4<f32>;
+    @location(0) uv: vec2<f32>,
+    @builtin(position) position: vec4<f32>,
 };
 
-[[stage(vertex)]]
+@vertex
 fn vertex(
-    [[location(0)]] vertex_position: vec3<f32>,
-    [[location(1)]] vertex_uv: vec2<f32>
+    @location(0) vertex_position: vec3<f32>,
+    @location(1) vertex_uv: vec2<f32>
 ) -> VertexOutput {
     var out: VertexOutput;
     out.uv = vertex_uv;
@@ -705,21 +733,21 @@ fn vertex(
         const EXPECTED: &str = r"
 struct View {
     view_proj: mat4x4<f32>,
-    world_position: vec3<f32>;
+    world_position: vec3<f32>,
 };
-[[group(0), binding(0)]]
+@group(0) @binding(0)
 var<uniform> view: View;
 
 
 struct VertexOutput {
-    [[location(0)]] uv: vec2<f32>,
-    [[builtin(position)]] position: vec4<f32>;
+    @location(0) uv: vec2<f32>,
+    @builtin(position) position: vec4<f32>,
 };
 
-[[stage(vertex)]]
+@vertex
 fn vertex(
-    [[location(0)]] vertex_position: vec3<f32>,
-    [[location(1)]] vertex_uv: vec2<f32>
+    @location(0) vertex_position: vec3<f32>,
+    @location(1) vertex_uv: vec2<f32>
 ) -> VertexOutput {
     var out: VertexOutput;
     out.uv = vertex_uv;
@@ -745,23 +773,23 @@ fn vertex(
     const EXPECTED: &str = r"
 struct View {
     view_proj: mat4x4<f32>,
-    world_position: vec3<f32>;
+    world_position: vec3<f32>,
 };
-[[group(0), binding(0)]]
+@group(0) @binding(0)
 var<uniform> view: View;
 
-[[group(1), binding(0)]]
+@group(1) @binding(0)
 var sprite_texture: texture_2d_array<f32>;
 
 struct VertexOutput {
-    [[location(0)]] uv: vec2<f32>,
-    [[builtin(position)]] position: vec4<f32>;
+    @location(0) uv: vec2<f32>,
+    @builtin(position) position: vec4<f32>,
 };
 
-[[stage(vertex)]]
+@vertex
 fn vertex(
-    [[location(0)]] vertex_position: vec3<f32>,
-    [[location(1)]] vertex_uv: vec2<f32>
+    @location(0) vertex_position: vec3<f32>,
+    @location(1) vertex_uv: vec2<f32>
 ) -> VertexOutput {
     var out: VertexOutput;
     out.uv = vertex_uv;
@@ -910,21 +938,21 @@ void bar() { }
     const EXPECTED: &str = r"
 struct View {
     view_proj: mat4x4<f32>,
-    world_position: vec3<f32>;
+    world_position: vec3<f32>,
 };
-[[group(0), binding(0)]]
+@group(0) @binding(0)
 var<uniform> view: View;
 
 
 struct VertexOutput {
-    [[location(0)]] uv: vec2<f32>,
-    [[builtin(position)]] position: vec4<f32>;
+    @location(0) uv: vec2<f32>,
+    @builtin(position) position: vec4<f32>,
 };
 
-[[stage(vertex)]]
+@vertex
 fn vertex(
-    [[location(0)]] vertex_position: vec3<f32>,
-    [[location(1)]] vertex_uv: vec2<f32>
+    @location(0) vertex_position: vec3<f32>,
+    @location(1) vertex_uv: vec2<f32>
 ) -> VertexOutput {
     var out: VertexOutput;
     out.uv = vertex_uv;
@@ -950,23 +978,23 @@ fn vertex(
     const EXPECTED: &str = r"
 struct View {
     view_proj: mat4x4<f32>,
-    world_position: vec3<f32>;
+    world_position: vec3<f32>,
 };
-[[group(0), binding(0)]]
+@group(0) @binding(0)
 var<uniform> view: View;
 
-[[group(1), binding(0)]]
+@group(1) @binding(0)
 var sprite_texture: texture_2d_array<f32>;
 
 struct VertexOutput {
-    [[location(0)]] uv: vec2<f32>,
-    [[builtin(position)]] position: vec4<f32>;
+    @location(0) uv: vec2<f32>,
+    @builtin(position) position: vec4<f32>,
 };
 
-[[stage(vertex)]]
+@vertex
 fn vertex(
-    [[location(0)]] vertex_position: vec3<f32>,
-    [[location(1)]] vertex_uv: vec2<f32>
+    @location(0) vertex_position: vec3<f32>,
+    @location(1) vertex_uv: vec2<f32>
 ) -> VertexOutput {
     var out: VertexOutput;
     out.uv = vertex_uv;
@@ -992,21 +1020,21 @@ fn vertex(
     const EXPECTED: &str = r"
 struct View {
     view_proj: mat4x4<f32>,
-    world_position: vec3<f32>;
+    world_position: vec3<f32>,
 };
-[[group(0), binding(0)]]
+@group(0) @binding(0)
 var<uniform> view: View;
 
 
 struct VertexOutput {
-    [[location(0)]] uv: vec2<f32>,
-    [[builtin(position)]] position: vec4<f32>;
+    @location(0) uv: vec2<f32>,
+    @builtin(position) position: vec4<f32>,
 };
 
-[[stage(vertex)]]
+@vertex
 fn vertex(
-    [[location(0)]] vertex_position: vec3<f32>,
-    [[location(1)]] vertex_uv: vec2<f32>
+    @location(0) vertex_position: vec3<f32>,
+    @location(1) vertex_uv: vec2<f32>
 ) -> VertexOutput {
     var out: VertexOutput;
     out.uv = vertex_uv;
@@ -1032,21 +1060,21 @@ fn vertex(
     const EXPECTED: &str = r"
 struct View {
     view_proj: mat4x4<f32>,
-    world_position: vec3<f32>;
+    world_position: vec3<f32>,
 };
-[[group(0), binding(0)]]
+@group(0) @binding(0)
 var<uniform> view: View;
 
 
 struct VertexOutput {
-    [[location(0)]] uv: vec2<f32>,
-    [[builtin(position)]] position: vec4<f32>;
+    @location(0) uv: vec2<f32>,
+    @builtin(position) position: vec4<f32>,
 };
 
-[[stage(vertex)]]
+@vertex
 fn vertex(
-    [[location(0)]] vertex_position: vec3<f32>,
-    [[location(1)]] vertex_uv: vec2<f32>
+    @location(0) vertex_position: vec3<f32>,
+    @location(1) vertex_uv: vec2<f32>
 ) -> VertexOutput {
     var out: VertexOutput;
     out.uv = vertex_uv;
@@ -1072,21 +1100,21 @@ fn vertex(
     const EXPECTED: &str = r"
 struct View {
     view_proj: mat4x4<f32>,
-    world_position: vec3<f32>;
+    world_position: vec3<f32>,
 };
-[[group(0), binding(0)]]
+@group(0) @binding(0)
 var<uniform> view: View;
 
 
 struct VertexOutput {
-    [[location(0)]] uv: vec2<f32>,
-    [[builtin(position)]] position: vec4<f32>;
+    @location(0) uv: vec2<f32>,
+    @builtin(position) position: vec4<f32>,
 };
 
-[[stage(vertex)]]
+@vertex
 fn vertex(
-    [[location(0)]] vertex_position: vec3<f32>,
-    [[location(1)]] vertex_uv: vec2<f32>
+    @location(0) vertex_position: vec3<f32>,
+    @location(1) vertex_uv: vec2<f32>
 ) -> VertexOutput {
     var out: VertexOutput;
     out.uv = vertex_uv;
@@ -1112,23 +1140,23 @@ fn vertex(
     const EXPECTED: &str = r"
 struct View {
     view_proj: mat4x4<f32>,
-    world_position: vec3<f32>;
+    world_position: vec3<f32>,
 };
-[[group(0), binding(0)]]
+@group(0) @binding(0)
 var<uniform> view: View;
 
-[[group(1), binding(0)]]
+@group(1) @binding(0)
 var sprite_texture: texture_2d<f32>;
 
 struct VertexOutput {
-    [[location(0)]] uv: vec2<f32>,
-    [[builtin(position)]] position: vec4<f32>;
+    @location(0) uv: vec2<f32>,
+    @builtin(position) position: vec4<f32>,
 };
 
-[[stage(vertex)]]
+@vertex
 fn vertex(
-    [[location(0)]] vertex_position: vec3<f32>,
-    [[location(1)]] vertex_uv: vec2<f32>
+    @location(0) vertex_position: vec3<f32>,
+    @location(1) vertex_uv: vec2<f32>
 ) -> VertexOutput {
     var out: VertexOutput;
     out.uv = vertex_uv;

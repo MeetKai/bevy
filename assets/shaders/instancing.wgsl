@@ -4,6 +4,9 @@
 @group(1) @binding(0)
 var<uniform> mesh: Mesh;
 
+// NOTE: Bindings must come before functions that use them!
+#import bevy_pbr::mesh_functions
+
 struct Vertex {
     @location(0) position: vec3<f32>,
     @location(1) normal: vec3<f32>,
@@ -19,17 +22,15 @@ struct VertexOutput {
 };
 
 @vertex
-fn vertex_fn(vertex: Vertex) -> VertexOutput {
+fn vertex(vertex: Vertex) -> VertexOutput {
     let position = vertex.position * vertex.i_pos_scale.w + vertex.i_pos_scale.xyz;
-    let world_position = mesh.model * vec4<f32>(position, 1.0);
-
-    var vout: VertexOutput;
-    vout.clip_position = view.view_proj * world_position;
-    vout.color = vertex.i_color;
-    return vout;
+    var out: VertexOutput;
+    out.clip_position = mesh_position_local_to_clip(mesh.model, vec4<f32>(position, 1.0));
+    out.color = vertex.i_color;
+    return out;
 }
 
 @fragment
-fn fragment_fn(vin: VertexOutput) -> @location(0) vec4<f32> {
-    return vin.color;
+fn fragment(in: VertexOutput) -> @location(0) vec4<f32> {
+    return in.color;
 }

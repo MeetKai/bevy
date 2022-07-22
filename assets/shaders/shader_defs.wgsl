@@ -1,33 +1,17 @@
-#import bevy_pbr::mesh_types
-#import bevy_pbr::mesh_view_bindings
+struct CustomMaterial {
+    color: vec4<f32>,
+};
 
 @group(1) @binding(0)
-var<uniform> mesh: Mesh;
-
-struct Vertex {
-    @location(0) position: vec3<f32>,
-    @location(1) normal: vec3<f32>,
-    @location(2) uv: vec2<f32>,
-};
-
-struct VertexOutput {
-    @builtin(position) clip_position: vec4<f32>,
-};
-
-@vertex
-fn vertex_fn(vertex: Vertex) -> VertexOutput {
-    let world_position = mesh.model * vec4<f32>(vertex.position, 1.0);
-
-    var vout: VertexOutput;
-    vout.clip_position = view.view_proj * world_position;
-    return vout;
-}
+var<uniform> material: CustomMaterial;
 
 @fragment
-fn fragment_fn() -> @location(0) vec4<f32> {
-    var color = vec4<f32>(0.0, 0.0, 1.0; 1.0);
-# ifdef IS_RED 
-    color = vec4<f32>(1.0, 0.0, 0.0, 1.0);
-# endif
-    return color;
+fn fragment(
+    #import bevy_pbr::mesh_vertex_output
+) -> @location(0) vec4<f32> {
+#ifdef IS_RED
+    return vec4<f32>(1.0, 0.0, 0.0, 1.0);
+#else
+    return material.color;
+#endif
 }

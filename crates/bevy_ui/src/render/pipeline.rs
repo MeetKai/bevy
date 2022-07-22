@@ -10,7 +10,6 @@ pub struct UiPipeline {
 
 impl FromWorld for UiPipeline {
     fn from_world(world: &mut World) -> Self {
-        let world = world.cell();
         let render_device = world.resource::<RenderDevice>();
 
         let view_layout = render_device.create_bind_group_layout(&BindGroupLayoutDescriptor {
@@ -86,12 +85,12 @@ impl SpecializedRenderPipeline for UiPipeline {
             fragment: Some(FragmentState {
                 shader: super::UI_SHADER_HANDLE.typed::<Shader>(),
                 shader_defs,
-                entry_point: "fragment_fn".into(),
-                targets: vec![ColorTargetState {
+                entry_point: "fragment".into(),
+                targets: vec![Some(ColorTargetState {
                     format: TextureFormat::bevy_default(),
                     blend: Some(BlendState::ALPHA_BLENDING),
                     write_mask: ColorWrites::ALL,
-                }],
+                })],
             }),
             layout: Some(vec![self.view_layout.clone(), self.image_layout.clone()]),
             primitive: PrimitiveState {

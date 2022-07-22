@@ -17,7 +17,7 @@ use bevy_render::{
         BevyDefault, DefaultImageSampler, GpuImage, Image, ImageSampler, TextureFormatPixelInfo,
     },
     view::{ComputedVisibility, ExtractedView, ViewUniform, ViewUniformOffset, ViewUniforms},
-    RenderApp, RenderStage,
+    Extract, RenderApp, RenderStage,
 };
 use bevy_transform::components::GlobalTransform;
 
@@ -37,6 +37,8 @@ impl From<Handle<Mesh>> for Mesh2dHandle {
 #[derive(Default)]
 pub struct Mesh2dRenderPlugin;
 
+pub const MESH2D_VERTEX_OUTPUT: HandleUntyped =
+    HandleUntyped::weak_from_u64(Shader::TYPE_UUID, 7646632476603252194);
 pub const MESH2D_VIEW_TYPES_HANDLE: HandleUntyped =
     HandleUntyped::weak_from_u64(Shader::TYPE_UUID, 12677582416765805110);
 pub const MESH2D_VIEW_BINDINGS_HANDLE: HandleUntyped =
@@ -45,11 +47,19 @@ pub const MESH2D_TYPES_HANDLE: HandleUntyped =
     HandleUntyped::weak_from_u64(Shader::TYPE_UUID, 8994673400261890424);
 pub const MESH2D_BINDINGS_HANDLE: HandleUntyped =
     HandleUntyped::weak_from_u64(Shader::TYPE_UUID, 8983617858458862856);
+pub const MESH2D_FUNCTIONS_HANDLE: HandleUntyped =
+    HandleUntyped::weak_from_u64(Shader::TYPE_UUID, 4976379308250389413);
 pub const MESH2D_SHADER_HANDLE: HandleUntyped =
     HandleUntyped::weak_from_u64(Shader::TYPE_UUID, 2971387252468633715);
 
 impl Plugin for Mesh2dRenderPlugin {
     fn build(&self, app: &mut bevy_app::App) {
+        load_internal_asset!(
+            app,
+            MESH2D_VERTEX_OUTPUT,
+            "mesh2d_vertex_output.wgsl",
+            Shader::from_wgsl
+        );
         load_internal_asset!(
             app,
             MESH2D_VIEW_TYPES_HANDLE,
@@ -72,6 +82,12 @@ impl Plugin for Mesh2dRenderPlugin {
             app,
             MESH2D_BINDINGS_HANDLE,
             "mesh2d_bindings.wgsl",
+            Shader::from_wgsl
+        );
+        load_internal_asset!(
+            app,
+            MESH2D_FUNCTIONS_HANDLE,
+            "mesh2d_functions.wgsl",
             Shader::from_wgsl
         );
         load_internal_asset!(app, MESH2D_SHADER_HANDLE, "mesh2d.wgsl", Shader::from_wgsl);
@@ -108,11 +124,11 @@ bitflags::bitflags! {
 pub fn extract_mesh2d(
     mut commands: Commands,
     mut previous_len: Local<usize>,
-    query: Query<(Entity, &ComputedVisibility, &GlobalTransform, &Mesh2dHandle)>,
+    query: Extract<Query<(Entity, &ComputedVisibility, &GlobalTransform, &Mesh2dHandle)>>,
 ) {
     let mut values = Vec::with_capacity(*previous_len);
     for (entity, computed_visibility, transform, handle) in query.iter() {
-        if !computed_visibility.is_visible {
+        if !computed_visibility.is_visible() {
             continue;
         }
         let transform = transform.compute_matrix();
@@ -335,12 +351,12 @@ impl SpecializedMeshPipeline for Mesh2dPipeline {
             fragment: Some(FragmentState {
                 shader: MESH2D_SHADER_HANDLE.typed::<Shader>(),
                 shader_defs,
-                entry_point: "fragment_fn".into(),
-                targets: vec![ColorTargetState {
+                entry_point: "fragment".into(),
+                targets: vec![Some(ColorTargetState {
                     format: TextureFormat::bevy_default(),
                     blend: Some(BlendState::ALPHA_BLENDING),
                     write_mask: ColorWrites::ALL,
-                }],
+                })],
             }),
             layout: Some(vec![self.view_layout.clone(), self.mesh_layout.clone()]),
             primitive: PrimitiveState {
@@ -400,7 +416,7 @@ pub fn queue_mesh2d_view_bind_groups(
     views: Query<Entity, With<ExtractedView>>,
 ) {
     if let Some(view_binding) = view_uniforms.uniforms.binding() {
-        for entity in views.iter() {
+        for entity in &views {
             let view_bind_group = render_device.create_bind_group(&BindGroupDescriptor {
                 entries: &[BindGroupEntry {
                     binding: 0,
