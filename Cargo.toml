@@ -1493,6 +1493,11 @@ category = "Window"
 wasm = false
 
 [[example]]
+name = "vr_cubes"
+path = "examples/xr/vr_cubes.rs"
+required-features = ["bevy_openxr"]
+
+[[example]]
 name = "vr_cubes_android"
 path = "examples/xr/vr_cubes.rs"
 required-features = ["bevy_openxr"]

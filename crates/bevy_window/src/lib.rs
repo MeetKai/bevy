@@ -95,7 +95,7 @@ impl Plugin for WindowPlugin {
             .cloned()
             .unwrap_or_default();
 
-        if settings.add_primary_window {
+        if settings.add_primary_window && !cfg!(feature = "bevy_openxr") {
             let window_descriptor = app
                 .world
                 .get_resource::<WindowDescriptor>()
@@ -110,7 +110,7 @@ impl Plugin for WindowPlugin {
             app.add_system_to_stage(CoreStage::PostUpdate, placeholder.label(ModifiesWindows));
         }
 
-        if settings.exit_on_all_closed {
+        if settings.exit_on_all_closed && !cfg!(feature = "bevy_openxr") {
             app.add_system(exit_on_all_closed);
         }
         if settings.close_when_requested {

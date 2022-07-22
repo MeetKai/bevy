@@ -20,7 +20,8 @@ use bevy_ecs::{
     system::{Commands, ParamSet, Query, Res},
 };
 use bevy_math::{Mat4, UVec2, Vec2, Vec3};
-use bevy_reflect::prelude::*;
+use bevy_reflect::{prelude::*, Uuid};
+use bevy_render_macros::ExtractResource;
 use bevy_transform::components::GlobalTransform;
 use bevy_utils::{HashMap, HashSet};
 use bevy_window::{WindowCreated, WindowId, WindowResized, Windows};
@@ -262,6 +263,7 @@ impl Default for RenderTarget {
 }
 
 #[derive(Default, Clone)]
+//#[derive(ExtractResource)]
 pub struct ManualTextureViews(HashMap<Uuid, (TextureView, UVec2)>);
 
 impl Deref for ManualTextureViews {
@@ -302,24 +304,31 @@ impl RenderTarget {
         images: &Assets<Image>,
         manual_texture_views: &ManualTextureViews,
     ) -> Option<RenderTargetInfo> {
-        Some(match self {
+        match self {
             RenderTarget::Window(window_id) => {
                 let window = windows.get(*window_id)?;
-                RenderTargetInfo {
+                Some(RenderTargetInfo {
                     physical_size: UVec2::new(window.physical_width(), window.physical_height()),
                     scale_factor: window.scale_factor(),
-                }
+                })
             }
             RenderTarget::Image(image_handle) => {
                 let image = images.get(image_handle)?;
                 let Extent3d { width, height, .. } = image.texture_descriptor.size;
-                RenderTargetInfo {
+                Some(RenderTargetInfo {
                     physical_size: UVec2::new(width, height),
                     scale_factor: 1.0,
-                }
+                })
             }
-            RenderTarget::TextureView(id) => manual_texture_views.get(id).map(|(_, size)| RenderTargetInfo{ physical_size: *size, scale_fractor: 1.0 }),
-        })
+            RenderTarget::TextureView(id) => {
+                manual_texture_views
+                    .get(id)
+                    .map(|(_, size)| RenderTargetInfo {
+                        physical_size: *size,
+                        scale_factor: 1.0,
+                    })
+            }
+        }
     }
 
     // Check if this render target is contained in the given changed windows or images.
@@ -401,7 +410,11 @@ pub fn camera_system<T: CameraProjection + Component>(
             || added_cameras.contains(&entity)
             || camera_projection.is_changed()
         {
-            camera.computed.target_info = camera.target.get_render_target_info(&windows, &images, &manual_texture_views.as_ref());
+            camera.computed.target_info = camera.target.get_render_target_info(
+                &windows,
+                &images,
+                &manual_texture_views.as_ref(),
+            );
             if let Some(size) = camera.logical_viewport_size() {
                 camera_projection.update(size.x, size.y);
                 camera.computed.projection_matrix = camera_projection.get_projection_matrix();

@@ -25,7 +25,6 @@ bevy_xr = { path = "../bevy_xr", version = "0.8.0-dev" }
 web-sys = { version = "0.3", features = [
     "Window",
     "Navigator",
-    "Xr",
     "XrBoundedReferenceSpace",
     "XrEye",
     "XrFrame",

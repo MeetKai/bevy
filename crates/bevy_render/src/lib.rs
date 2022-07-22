@@ -371,8 +371,17 @@ fn extract(app_world: &mut World, render_app: &mut App) {
 }
 
 fn extract_manual_texture_views(
-    manual_texture_views: Res<ManualTextureViews>,
-    mut world: ResMut<RenderWorld>,
+    manual_texture_views: Extract<Res<ManualTextureViews>>,
+    // mut world: ResMut<MainWorld>,
+    mut commands: Commands,
 ) {
-    world.insert_resource::<ManualTextureViews>(manual_texture_views.clone());
+    commands.insert_resource(manual_texture_views.clone());
+    // world.insert_resource::<ManualTextureViews>(manual_texture_views.clone());
 }
+
+// fn extract_manual_texture_views(
+//     mut render_assets: ResMut<ManualTextureViews>,
+//     source_assets: Extract<Res<ManualTextureViews>>,
+// ) {
+//     *render_assets = source_assets.clone();
+// }

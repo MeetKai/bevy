@@ -337,7 +337,7 @@ impl SpecializedMeshPipeline for ShadowPipeline {
         Ok(RenderPipelineDescriptor {
             vertex: VertexState {
                 shader: SHADOW_SHADER_HANDLE.typed::<Shader>(),
-                entry_point: "vertex_fn".into(),
+                entry_point: "vertex".into(),
                 shader_defs,
                 buffers: vec![vertex_buffer_layout],
             },

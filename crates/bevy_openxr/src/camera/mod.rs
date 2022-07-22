@@ -236,6 +236,7 @@ impl XrPawn {
                         .spawn_bundle(XRCameraBundle {
                             camera: Camera {
                                 target: RenderTarget::TextureView(left_id),
+                                is_active: true,
                                 ..Default::default()
                             },
                             marker: XrCameraLeftMarker,
@@ -247,6 +248,7 @@ impl XrPawn {
                         .spawn_bundle(XRCameraBundle {
                             camera: Camera {
                                 target: RenderTarget::TextureView(right_id),
+                                is_active: true,
                                 ..Default::default()
                             },
                             marker: XrCameraRightMarker,

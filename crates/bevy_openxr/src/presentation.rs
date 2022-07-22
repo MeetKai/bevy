@@ -1,13 +1,9 @@
 use ash::vk::{self, Handle, InstanceCreateFlags};
 use bevy_xr::presentation::XrGraphicsContext;
 use openxr as xr;
-use std::{
-    error::Error,
-    ffi::{CStr},
-    sync::Arc,
-};
+use std::{error::Error, ffi::CStr, sync::Arc};
 use wgpu_hal as hal;
-use xr::sys::{platform::VkInstanceCreateInfo};
+use xr::sys::platform::VkInstanceCreateInfo;
 
 #[derive(Clone)]
 pub enum GraphicsContextHandles {
@@ -89,6 +85,7 @@ pub fn create_graphics_context(
                 vk_entry.clone(),
                 vk_instance.clone(),
                 vk_version,
+                0, //TODO: is this correct?
                 instance_extensions,
                 flags,
                 false, //TODO: is this correct?

@@ -39,8 +39,9 @@ impl PluginGroup for DefaultPlugins {
         group.add(bevy_window::WindowPlugin::default());
         #[cfg(feature = "bevy_xr")]
         group.add(bevy_window::WindowPlugin {
-            add_primary_window: false,
-            exit_on_close: false,
+            
+            // add_primary_window: false,
+            // exit_on_close: false,
         });
         group.add(bevy_asset::AssetPlugin::default());
         #[cfg(feature = "debug_asset_server")]

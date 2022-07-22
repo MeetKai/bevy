@@ -30,12 +30,12 @@ bevy_hierarchy = { path = "../bevy_hierarchy", version = "0.8.0-dev" }
 # other
 serde = "1"
 ash = "0.37.0+1.3.209"
-wgpu = { version = "0.12", features = [
+wgpu = { version = "0.13.1", features = [
     "vulkan-portability",
     # ], git = "https://github.com/gfx-rs/wgpu", rev="fa35c0a0f4aaae35ab3d129266199008d89928fa" }
     # ], git = "https://github.com/gfx-rs/wgpu", branch="v0.12" }
 ] }
-wgpu-hal = { version = "0.12", features = [
+wgpu-hal = { version = "0.13.1", features = [
     "vulkan",
     # ], git = "https://github.com/gfx-rs/wgpu", rev="fa35c0a0f4aaae35ab3d129266199008d89928fa" }
     # ], git = "https://github.com/gfx-rs/wgpu", branch="v0.12" }

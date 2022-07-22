@@ -601,7 +601,7 @@ impl SpecializedMeshPipeline for MeshPipeline {
         Ok(RenderPipelineDescriptor {
             vertex: VertexState {
                 shader: MESH_SHADER_HANDLE.typed::<Shader>(),
-                entry_point: "vertex_fn".into(),
+                entry_point: "vertex".into(),
                 shader_defs: shader_defs.clone(),
                 buffers: vec![vertex_buffer_layout],
             },
