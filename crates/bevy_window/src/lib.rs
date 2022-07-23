@@ -113,7 +113,7 @@ impl Plugin for WindowPlugin {
         if settings.exit_on_all_closed && !cfg!(feature = "bevy_openxr") {
             app.add_system(exit_on_all_closed);
         }
-        if settings.close_when_requested {
+        if settings.close_when_requested && !cfg!(feature = "bevy_openxr") {
             app.add_system(close_when_requested);
         }
     }
