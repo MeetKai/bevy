@@ -1,3 +1,4 @@
+use bevy_core_pipeline::{core_3d, prelude::Camera3d};
 use bevy_ecs::{
     prelude::{Bundle, Component, ReflectComponent, Without},
     system::{Query, Res},
@@ -7,7 +8,7 @@ use bevy_hierarchy::BuildWorldChildren;
 use bevy_math::{Mat4, Quat, Vec3};
 use bevy_reflect::{Reflect, Uuid};
 use bevy_render::{
-    camera::{Camera, CameraProjection, DepthCalculation, RenderTarget},
+    camera::{Camera, CameraProjection, CameraRenderGraph, DepthCalculation, RenderTarget},
     primitives::Frustum,
     view::VisibleEntities,
 };
@@ -21,7 +22,7 @@ use openxr::{Fovf, Quaternionf, Vector3f, View};
 use self::xrcameraplugin::{XrCameraLeftMarker, XrCameraRightMarker};
 pub mod xrcameraplugin;
 
-#[derive(Bundle, Default)]
+#[derive(Bundle)]
 pub struct XRCameraBundle<M: Component> {
     pub camera: Camera,
     pub xr_projection: XRProjection,
@@ -30,6 +31,26 @@ pub struct XRCameraBundle<M: Component> {
     pub global_transform: GlobalTransform,
     pub frustum: Frustum,
     pub marker: M,
+
+    //  convince bevy to render this camera with 3d pipeline
+    pub camera3d: Camera3d,
+    pub camera_render_graph: CameraRenderGraph,
+}
+
+impl<M: Component + Default> Default for XRCameraBundle<M> {
+    fn default() -> Self {
+        Self {
+            camera: Default::default(),
+            xr_projection: Default::default(),
+            visible_entities: Default::default(),
+            transform: Default::default(),
+            global_transform: Default::default(),
+            frustum: Default::default(),
+            marker: Default::default(),
+            camera3d: Default::default(),
+            camera_render_graph: CameraRenderGraph::new(core_3d::graph::NAME),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Component, Reflect)]

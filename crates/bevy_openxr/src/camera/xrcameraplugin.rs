@@ -7,7 +7,7 @@ use bevy_ecs::{
     system::{Commands, Res},
 };
 use bevy_render::{
-    camera::camera_system,
+    camera::{camera_system, CameraProjectionPlugin},
     render_graph::{self, NodeRunError, RenderGraph, RenderGraphContext, SlotValue},
     render_phase::RenderPhase,
     renderer::RenderContext,
@@ -49,12 +49,9 @@ impl Plugin for XrCameraPlugin {
         //     .add_node_edge(bevy_core_pipeline::node::CLEAR_PASS_DRIVER, xr_camera_node)
         //     .unwrap();
 
-        app.register_type::<XRProjection>();
         //  make sure XRProjection-based cameras are processed
-        app.add_system_to_stage(
-            CoreStage::PostUpdate,
-            camera_system::<XRProjection>.after(ModifiesWindows),
-        );
+        app.add_plugin(CameraProjectionPlugin::<XRProjection>::default());
+
         app.add_system_to_stage(
             CoreStage::PostUpdate,
             update_frusta::<XRProjection>

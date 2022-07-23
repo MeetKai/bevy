@@ -11,7 +11,7 @@ use ash::vk;
 use ash::vk::Handle;
 
 use bevy_render::{
-    camera::{CameraProjection, ManualTextureViews},
+    camera::{CameraPlugin, CameraProjection, CameraProjectionPlugin, ManualTextureViews},
     prelude::Msaa,
 };
 
@@ -34,7 +34,7 @@ use std::{error::Error, ops::Deref, sync::Arc, thread, time::Duration};
 use wgpu::{TextureUsages, TextureViewDescriptor};
 use wgpu_hal::TextureUses;
 
-use crate::camera::XrPawn;
+use crate::camera::{XRProjection, XrPawn};
 
 // The form-factor is selected at plugin-creation-time and cannot be changed anymore for the entire
 // lifetime of the app. This will restrict which XrSessionMode can be selected.
