@@ -13,6 +13,7 @@ use bevy_input::{keyboard::KeyCode, Input};
 /// [`WindowPlugin`]: crate::WindowPlugin
 pub fn exit_on_all_closed(mut app_exit_events: EventWriter<AppExit>, windows: Res<Windows>) {
     if windows.iter().count() == 0 {
+        println!("exiting because all closed");
         app_exit_events.send(AppExit);
     }
 }

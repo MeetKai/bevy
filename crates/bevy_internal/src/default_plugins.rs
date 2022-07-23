@@ -1,4 +1,5 @@
 use bevy_app::{PluginGroup, PluginGroupBuilder};
+use bevy_window::WindowSettings;
 
 /// This plugin group will add all the default plugins:
 /// * [`LogPlugin`](bevy_log::LogPlugin)
@@ -38,11 +39,11 @@ impl PluginGroup for DefaultPlugins {
         #[cfg(not(feature = "bevy_xr"))]
         group.add(bevy_window::WindowPlugin::default());
         #[cfg(feature = "bevy_xr")]
-        group.add(bevy_window::WindowPlugin {
-            
-            // add_primary_window: false,
-            // exit_on_close: false,
-        });
+        group.add(bevy_window::WindowPlugin(Some(WindowSettings {
+            add_primary_window: false,
+            exit_on_all_closed: false,
+            close_when_requested: false,
+        })));
         group.add(bevy_asset::AssetPlugin::default());
         #[cfg(feature = "debug_asset_server")]
         group.add(bevy_asset::debug_asset_server::DebugAssetServerPlugin::default());

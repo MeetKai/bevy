@@ -58,17 +58,18 @@ pub struct WindowSettings {
 
 impl Default for WindowSettings {
     fn default() -> Self {
+        let is_openxr = cfg!(feature = "bevy_openxr");
         WindowSettings {
-            add_primary_window: true,
-            exit_on_all_closed: true,
-            close_when_requested: true,
+            add_primary_window: !is_openxr,
+            exit_on_all_closed: !is_openxr,
+            close_when_requested: !is_openxr,
         }
     }
 }
 
 /// A [`Plugin`] that defines an interface for windowing support in Bevy.
 #[derive(Default)]
-pub struct WindowPlugin;
+pub struct WindowPlugin(pub Option<WindowSettings>);
 
 impl Plugin for WindowPlugin {
     fn build(&self, app: &mut App) {
@@ -89,13 +90,17 @@ impl Plugin for WindowPlugin {
             .add_event::<WindowMoved>()
             .init_resource::<Windows>();
 
+        if let Some(settings) = &self.0 {
+            app.insert_resource(settings.clone());
+        }
+
         let settings = app
             .world
             .get_resource::<WindowSettings>()
             .cloned()
             .unwrap_or_default();
 
-        if settings.add_primary_window && !cfg!(feature = "bevy_openxr") {
+        if settings.add_primary_window {
             let window_descriptor = app
                 .world
                 .get_resource::<WindowDescriptor>()
@@ -110,10 +115,10 @@ impl Plugin for WindowPlugin {
             app.add_system_to_stage(CoreStage::PostUpdate, placeholder.label(ModifiesWindows));
         }
 
-        if settings.exit_on_all_closed && !cfg!(feature = "bevy_openxr") {
+        if settings.exit_on_all_closed {
             app.add_system(exit_on_all_closed);
         }
-        if settings.close_when_requested && !cfg!(feature = "bevy_openxr") {
+        if settings.close_when_requested {
             app.add_system(close_when_requested);
         }
     }

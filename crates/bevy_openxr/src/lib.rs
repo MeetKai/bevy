@@ -338,6 +338,7 @@ fn runner(mut app: App) {
         .next_back()
         .is_some()
     {
+        println!("app exit event received");
         return;
     }
 
@@ -484,6 +485,7 @@ fn runner(mut app: App) {
                             running = false;
                         }
                         xr::SessionState::EXITING | xr::SessionState::LOSS_PENDING => {
+                            println!("Exiting | Loss Pending");
                             break 'session_loop;
                         }
                         _ => unreachable!(),
@@ -686,7 +688,9 @@ fn runner(mut app: App) {
             .next_back()
             .is_some()
         {
+            println!("app exit event");
             session.request_exit().unwrap();
         }
     }
+    println!("runner loop done");
 }

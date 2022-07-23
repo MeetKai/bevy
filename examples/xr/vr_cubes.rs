@@ -56,6 +56,7 @@ fn startup(
         xr_system.request_session_mode(XrSessionMode::ImmersiveVR);
     } else {
         bevy::log::error!("The XR device does not support immersive VR mode");
+        println!("sending exit due to unsupported");
         app_exit_events.send(AppExit)
     }
 
