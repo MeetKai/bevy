@@ -46,14 +46,7 @@ pub fn predict_pose(
         return None;
     }
 
-    #[cfg(not(target_os = "macos"))]
-    let linear_velocity = velocity.linear_velocity.map(|v| v.to_vec3());
-    #[cfg(not(target_os = "macos"))]
-    let angular_velocity = velocity.angular_velocity.map(|v| v.to_vec3());
-
-    #[cfg(target_os = "macos")]
     let linear_velocity = Some(velocity.linear_velocity.to_vec3());
-    #[cfg(target_os = "macos")]
     let angular_velocity = Some(velocity.angular_velocity.to_vec3());
 
     Some(XrPose {

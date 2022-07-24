@@ -2,6 +2,7 @@ use ash::vk::{self, Handle, InstanceCreateFlags};
 use bevy_xr::presentation::XrGraphicsContext;
 use openxr as xr;
 use std::{error::Error, ffi::CStr, sync::Arc};
+use wgpu::Limits;
 use wgpu_hal as hal;
 use xr::sys::platform::VkInstanceCreateInfo;
 
@@ -24,7 +25,8 @@ pub fn create_graphics_context(
     instance: &xr::Instance,
     system: xr::SystemId,
 ) -> Result<(GraphicsContextHandles, XrGraphicsContext), Box<dyn Error>> {
-    let device_descriptor = wgpu::DeviceDescriptor::default();
+    let mut device_descriptor = wgpu::DeviceDescriptor::default();
+    device_descriptor.limits = Limits::downlevel_defaults();
 
     if instance.exts().khr_vulkan_enable2.is_some() {
         let vk_entry = unsafe { ash::Entry::load().unwrap() };
@@ -52,8 +54,9 @@ pub fn create_graphics_context(
         let mut instance_extensions =
             <hal::api::Vulkan as hal::Api>::Instance::required_extensions(&vk_entry, flags)
                 .map_err(Box::new)?;
-        instance_extensions
-            .push(CStr::from_bytes_with_nul(b"VK_KHR_portability_enumeration\0").unwrap());
+        //  TODO: only enable portability when running on macos with metal
+        // instance_extensions
+        //     .push(CStr::from_bytes_with_nul(b"VK_KHR_portability_enumeration\0").unwrap());
         let instance_extensions_ptrs = instance_extensions
             .iter()
             .map(|x| x.as_ptr())
@@ -62,7 +65,7 @@ pub fn create_graphics_context(
         let create_info = vk::InstanceCreateInfo::builder()
             .application_info(&vk_app_info)
             .enabled_extension_names(&instance_extensions_ptrs)
-            .flags(InstanceCreateFlags::ENUMERATE_PORTABILITY_KHR)
+            // .flags(InstanceCreateFlags::ENUMERATE_PORTABILITY_KHR)
             .build();
 
         let vk_instance = unsafe {
@@ -85,7 +88,7 @@ pub fn create_graphics_context(
                 vk_entry.clone(),
                 vk_instance.clone(),
                 vk_version,
-                0, //TODO: is this correct?
+                26, //TODO: is this correct?
                 instance_extensions,
                 flags,
                 false, //TODO: is this correct?

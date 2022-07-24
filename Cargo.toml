@@ -1570,13 +1570,6 @@ categories = [
   "android.intent.category.INFO",
 ]
 
-[patch."https://github.com/Ralith/openxrs"]
-openxr_sys = { package = "openxr-sys", path = "../openxrs/sys" }
-openxr = { path = "../openxrs/openxr" }
-
-[patch.crates-io]
-# wgpu = { git = "https://github.com/gfx-rs/wgpu", branch="master" }
-# wgpu-hal = { git = "https://github.com/gfx-rs/wgpu", branch="master" }
-wgpu = { path = "../wgpu/wgpu" }
-wgpu-hal = { path = "../wgpu/wgpu-hal" }
-naga = { version = "=0.8.0", git = "https://github.com/gfx-rs/naga", rev = "1aa91549" }
+[package.metadata.android.signing.release]
+path = "/Users/kevin/.android/release.keystore"
+keystore_password = "android"
