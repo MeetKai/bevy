@@ -6,7 +6,7 @@ struct LineMaterial {
 var<uniform> material: LineMaterial;
 
 @fragment
-fn fragment(
+fn fragment_fn(
     #import bevy_pbr::mesh_vertex_output
 ) -> @location(0) vec4<f32> {
     return material.color;

@@ -150,7 +150,7 @@ impl SpecializedRenderPipeline for ColoredMesh2dPipeline {
             vertex: VertexState {
                 // Use our custom shader
                 shader: COLORED_MESH2D_SHADER_HANDLE.typed::<Shader>(),
-                entry_point: "vertex".into(),
+                entry_point: "vertex_fn".into(),
                 shader_defs: Vec::new(),
                 // Use our custom vertex buffer
                 buffers: vec![vertex_layout],
@@ -159,7 +159,7 @@ impl SpecializedRenderPipeline for ColoredMesh2dPipeline {
                 // Use our custom shader
                 shader: COLORED_MESH2D_SHADER_HANDLE.typed::<Shader>(),
                 shader_defs: Vec::new(),
-                entry_point: "fragment".into(),
+                entry_point: "fragment_fn".into(),
                 targets: vec![Some(ColorTargetState {
                     format: TextureFormat::bevy_default(),
                     blend: Some(BlendState::ALPHA_BLENDING),
@@ -233,13 +233,13 @@ struct VertexOutput {
 
 /// Entry point for the vertex shader
 @vertex
-fn vertex(vertex: Vertex) -> VertexOutput {
-    var out: VertexOutput;
+fn vertex_fn(vertex: Vertex) -> VertexOutput {
+    var vout: VertexOutput;
     // Project the world position of the mesh into screen position
-    out.clip_position = mesh2d_position_local_to_clip(mesh.model, vec4<f32>(vertex.position, 1.0));
+    vout.clip_position = mesh2d_position_local_to_clip(mesh.model, vec4<f32>(vertex.position, 1.0));
     // Unpack the `u32` from the vertex buffer into the `vec4<f32>` used by the fragment shader
-    out.color = vec4<f32>((vec4<u32>(vertex.color) >> vec4<u32>(0u, 8u, 16u, 24u)) & vec4<u32>(255u)) / 255.0;
-    return out;
+    vout.color = vec4<f32>((vec4<u32>(vertex.color) >> vec4<u32>(0u, 8u, 16u, 24u)) & vec4<u32>(255u)) / 255.0;
+    return vout;
 }
 
 // The input of the fragment shader must correspond to the output of the vertex shader for all `location`s
@@ -250,8 +250,8 @@ struct FragmentInput {
 
 /// Entry point for the fragment shader
 @fragment
-fn fragment(in: FragmentInput) -> @location(0) vec4<f32> {
-    return in.color;
+fn fragment_fn(frag_in: FragmentInput) -> @location(0) vec4<f32> {
+    return frag_in.color;
 }
 ";
 

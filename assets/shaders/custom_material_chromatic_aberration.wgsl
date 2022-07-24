@@ -7,7 +7,7 @@ var texture: texture_2d<f32>;
 var our_sampler: sampler;
 
 @fragment
-fn fragment(
+fn fragment_fn(
     @builtin(position) position: vec4<f32>,
     #import bevy_sprite::mesh2d_vertex_output
 ) -> @location(0) vec4<f32> {

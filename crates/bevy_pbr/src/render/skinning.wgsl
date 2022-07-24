@@ -14,11 +14,11 @@ fn skin_model(
         + weights.w * joint_matrices.data[indexes.w];
 }
 
-fn inverse_transpose_3x3(in: mat3x3<f32>) -> mat3x3<f32> {
-    let x = cross(in[1], in[2]);
-    let y = cross(in[2], in[0]);
-    let z = cross(in[0], in[1]);
-    let det = dot(in[2], z);
+fn inverse_transpose_3x3(m_in: mat3x3<f32>) -> mat3x3<f32> {
+    let x = cross(m_in[1], m_in[2]);
+    let y = cross(m_in[2], m_in[0]);
+    let z = cross(m_in[0], m_in[1]);
+    let det = dot(m_in[2], z);
     return mat3x3<f32>(
         x / det,
         y / det,

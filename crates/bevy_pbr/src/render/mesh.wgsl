@@ -28,28 +28,28 @@ struct VertexOutput {
 };
 
 @vertex
-fn vertex(vertex: Vertex) -> VertexOutput {
-    var out: VertexOutput;
+fn vertex_fn(vertex: Vertex) -> VertexOutput {
+    var vout: VertexOutput;
 #ifdef SKINNED
     var model = skin_model(vertex.joint_indices, vertex.joint_weights);
-    out.world_normal = skin_normals(model, vertex.normal);
+    vout.world_normal = skin_normals(model, vertex.normal);
 #else
     var model = mesh.model;
-    out.world_normal = mesh_normal_local_to_world(vertex.normal);
+    vout.world_normal = mesh_normal_local_to_world(vertex.normal);
 #endif
-    out.world_position = mesh_position_local_to_world(model, vec4<f32>(vertex.position, 1.0));
+    vout.world_position = mesh_position_local_to_world(model, vec4<f32>(vertex.position, 1.0));
 #ifdef VERTEX_UVS
-    out.uv = vertex.uv;
+    vout.uv = vertex.uv;
 #endif
 #ifdef VERTEX_TANGENTS
-    out.world_tangent = mesh_tangent_local_to_world(model, vertex.tangent);
+    vout.world_tangent = mesh_tangent_local_to_world(model, vertex.tangent);
 #endif
 #ifdef VERTEX_COLORS
-    out.color = vertex.color;
+    vout.color = vertex.color;
 #endif
 
-    out.clip_position = mesh_position_world_to_clip(out.world_position);
-    return out;
+    vout.clip_position = mesh_position_world_to_clip(vout.world_position);
+    return vout;
 }
 
 struct FragmentInput {
@@ -58,9 +58,9 @@ struct FragmentInput {
 };
 
 @fragment
-fn fragment(in: FragmentInput) -> @location(0) vec4<f32> {
+fn fragment_fn(frag_in: FragmentInput) -> @location(0) vec4<f32> {
 #ifdef VERTEX_COLORS
-    return in.color;
+    return frag_in.color;
 #else
     return vec4<f32>(1.0, 0.0, 1.0, 1.0);
 #endif

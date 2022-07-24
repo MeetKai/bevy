@@ -26,19 +26,19 @@ struct VertexOutput {
 };
 
 @vertex
-fn vertex(vertex: Vertex) -> VertexOutput {
+fn vertex_fn(vertex: Vertex) -> VertexOutput {
 #ifdef SKINNED
     let model = skin_model(vertex.joint_indexes, vertex.joint_weights);
 #else
     let model = mesh.model;
 #endif
 
-    var out: VertexOutput;
-    out.clip_position = mesh_position_local_to_clip(model, vec4<f32>(vertex.position, 1.0));
-    return out;
+    var vout: VertexOutput;
+    vout.clip_position = mesh_position_local_to_clip(model, vec4<f32>(vertex.position, 1.0));
+    return vout;
 }
 
 @fragment
-fn fragment() -> @location(0) vec4<f32> {
+fn fragment_fn() -> @location(0) vec4<f32> {
     return vec4<f32>(1.0, 1.0, 1.0, 1.0);
 }

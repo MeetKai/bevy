@@ -498,13 +498,13 @@ struct VisibilityFlags {
 }
 
 impl ShaderStageVisibility {
-    fn vertex_fragment() -> Self {
-        Self::Flags(VisibilityFlags::vertex_fragment())
+    fn vertex_fragment_fn() -> Self {
+        Self::Flags(VisibilityFlags::vertex_fragment_fn())
     }
 }
 
 impl VisibilityFlags {
-    fn vertex_fragment() -> Self {
+    fn vertex_fragment_fn() -> Self {
         Self {
             vertex: true,
             fragment: true,
@@ -547,7 +547,7 @@ const VISIBILITY_NONE: Symbol = Symbol("none");
 fn get_visibility_flag_value(
     nested_metas: &Punctuated<NestedMeta, Token![,]>,
 ) -> Result<ShaderStageVisibility> {
-    let mut visibility = VisibilityFlags::vertex_fragment();
+    let mut visibility = VisibilityFlags::vertex_fragment_fn();
 
     for meta in nested_metas {
         use syn::{Meta::Path, NestedMeta::Meta};
@@ -680,7 +680,7 @@ fn get_texture_attrs(metas: Vec<NestedMeta>) -> Result<TextureAttrs> {
     let mut filterable = None;
     let mut filterable_ident = None;
 
-    let mut visibility = ShaderStageVisibility::vertex_fragment();
+    let mut visibility = ShaderStageVisibility::vertex_fragment_fn();
 
     for meta in metas {
         use syn::{
@@ -813,7 +813,7 @@ const COMPARISON: &str = "comparison";
 
 fn get_sampler_attrs(metas: Vec<NestedMeta>) -> Result<SamplerAttrs> {
     let mut sampler_binding_type = Default::default();
-    let mut visibility = ShaderStageVisibility::vertex_fragment();
+    let mut visibility = ShaderStageVisibility::vertex_fragment_fn();
 
     for meta in metas {
         use syn::{

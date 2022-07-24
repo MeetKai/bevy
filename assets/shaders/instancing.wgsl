@@ -22,15 +22,15 @@ struct VertexOutput {
 };
 
 @vertex
-fn vertex(vertex: Vertex) -> VertexOutput {
+fn vertex_fn(vertex: Vertex) -> VertexOutput {
     let position = vertex.position * vertex.i_pos_scale.w + vertex.i_pos_scale.xyz;
-    var out: VertexOutput;
-    out.clip_position = mesh_position_local_to_clip(mesh.model, vec4<f32>(position, 1.0));
-    out.color = vertex.i_color;
-    return out;
+    var vout: VertexOutput;
+    vout.clip_position = mesh_position_local_to_clip(mesh.model, vec4<f32>(position, 1.0));
+    vout.color = vertex.i_color;
+    return vout;
 }
 
 @fragment
-fn fragment(in: VertexOutput) -> @location(0) vec4<f32> {
-    return in.color;
+fn fragment_fn(v_in: VertexOutput) -> @location(0) vec4<f32> {
+    return v_in.color;
 }

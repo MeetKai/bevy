@@ -63,7 +63,7 @@ struct Context {
     results: Vec<Result>,
 }
 
-fn vertex(mesh: &Mesh, face: usize, vert: usize) -> &Vertex {
+fn vertex_fn(mesh: &Mesh, face: usize, vert: usize) -> &Vertex {
     let vs: &[u32; 3] = &mesh.faces[face];
     &mesh.vertices[vs[vert] as usize]
 }
@@ -78,15 +78,15 @@ impl Geometry for Context {
     }
 
     fn position(&self, face: usize, vert: usize) -> [f32; 3] {
-        vertex(&self.mesh, face, vert).position.into()
+        vertex_fn(&self.mesh, face, vert).position.into()
     }
 
     fn normal(&self, face: usize, vert: usize) -> [f32; 3] {
-        vertex(&self.mesh, face, vert).normal.into()
+        vertex_fn(&self.mesh, face, vert).normal.into()
     }
 
     fn tex_coord(&self, face: usize, vert: usize) -> [f32; 2] {
-        vertex(&self.mesh, face, vert).tex_coord.into()
+        vertex_fn(&self.mesh, face, vert).tex_coord.into()
     }
 
     fn set_tangent(

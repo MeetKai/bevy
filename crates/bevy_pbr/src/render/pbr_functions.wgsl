@@ -122,46 +122,46 @@ fn pbr_input_new() -> PbrInput {
 }
 
 fn pbr(
-    in: PbrInput,
+    pbr_in: PbrInput,
 ) -> vec4<f32> {
-    var output_color: vec4<f32> = in.material.base_color;
+    var output_color: vec4<f32> = pbr_in.material.base_color;
 
     // TODO use .a for exposure compensation in HDR
-    let emissive = in.material.emissive;
+    let emissive = pbr_in.material.emissive;
 
     // calculate non-linear roughness from linear perceptualRoughness
-    let metallic = in.material.metallic;
-    let perceptual_roughness = in.material.perceptual_roughness;
+    let metallic = pbr_in.material.metallic;
+    let perceptual_roughness = pbr_in.material.perceptual_roughness;
     let roughness = perceptualRoughnessToRoughness(perceptual_roughness);
 
-    let occlusion = in.occlusion;
+    let occlusion = pbr_in.occlusion;
 
-    if ((in.material.flags & STANDARD_MATERIAL_FLAGS_ALPHA_MODE_OPAQUE) != 0u) {
+    if ((pbr_in.material.flags & STANDARD_MATERIAL_FLAGS_ALPHA_MODE_OPAQUE) != 0u) {
         // NOTE: If rendering as opaque, alpha should be ignored so set to 1.0
         output_color.a = 1.0;
-    } else if ((in.material.flags & STANDARD_MATERIAL_FLAGS_ALPHA_MODE_MASK) != 0u) {
-        if (output_color.a >= in.material.alpha_cutoff) {
+    } else if ((pbr_in.material.flags & STANDARD_MATERIAL_FLAGS_ALPHA_MODE_MASK) != 0u) {
+        if (output_color.a >= pbr_in.material.alpha_cutoff) {
             // NOTE: If rendering as masked alpha and >= the cutoff, render as fully opaque
             output_color.a = 1.0;
         } else {
-            // NOTE: output_color.a < in.material.alpha_cutoff should not is not rendered
+            // NOTE: output_color.a < pbr_in.material.alpha_cutoff should not is not rendered
             // NOTE: This and any other discards mean that early-z testing cannot be done!
             discard;
         }
     }
 
     // Neubelt and Pettineo 2013, "Crafting a Next-gen Material Pipeline for The Order: 1886"
-    let NdotV = max(dot(in.N, in.V), 0.0001);
+    let NdotV = max(dot(pbr_in.N, pbr_in.V), 0.0001);
 
     // Remapping [0,1] reflectance to F0
     // See https://google.github.io/filament/Filament.html#materialsystem/parameterization/remapping
-    let reflectance = in.material.reflectance;
+    let reflectance = pbr_in.material.reflectance;
     let F0 = 0.16 * reflectance * reflectance * (1.0 - metallic) + output_color.rgb * metallic;
 
     // Diffuse strength inversely related to metallicity
     let diffuse_color = output_color.rgb * (1.0 - metallic);
 
-    let R = reflect(-in.V, in.N);
+    let R = reflect(-pbr_in.V, pbr_in.N);
 
     // accumulate color
     var light_accum: vec3<f32> = vec3<f32>(0.0);
@@ -171,8 +171,8 @@ fn pbr(
         view.inverse_view[1].z,
         view.inverse_view[2].z,
         view.inverse_view[3].z
-    ), in.world_position);
-    let cluster_index = fragment_cluster_index(in.frag_coord.xy, view_z, in.is_orthographic);
+    ), pbr_in.world_position);
+    let cluster_index = fragment_cluster_index(pbr_in.frag_coord.xy, view_z, pbr_in.is_orthographic);
     let offset_and_counts = unpack_offset_and_counts(cluster_index);
 
     // point lights
@@ -182,9 +182,9 @@ fn pbr(
         var shadow: f32 = 1.0;
         if ((mesh.flags & MESH_FLAGS_SHADOW_RECEIVER_BIT) != 0u
                 && (light.flags & POINT_LIGHT_FLAGS_SHADOWS_ENABLED_BIT) != 0u) {
-            shadow = fetch_point_shadow(light_id, in.world_position, in.world_normal);
+            shadow = fetch_point_shadow(light_id, pbr_in.world_position, pbr_in.world_normal);
         }
-        let light_contrib = point_light(in.world_position.xyz, light, roughness, NdotV, in.N, in.V, R, F0, diffuse_color);
+        let light_contrib = point_light(pbr_in.world_position.xyz, light, roughness, NdotV, pbr_in.N, pbr_in.V, R, F0, diffuse_color);
         light_accum = light_accum + light_contrib * shadow;
     }
 
@@ -195,9 +195,9 @@ fn pbr(
         var shadow: f32 = 1.0;
         if ((mesh.flags & MESH_FLAGS_SHADOW_RECEIVER_BIT) != 0u
                 && (light.flags & POINT_LIGHT_FLAGS_SHADOWS_ENABLED_BIT) != 0u) {
-            shadow = fetch_spot_shadow(light_id, in.world_position, in.world_normal);
+            shadow = fetch_spot_shadow(light_id, pbr_in.world_position, pbr_in.world_normal);
         }
-        let light_contrib = spot_light(in.world_position.xyz, light, roughness, NdotV, in.N, in.V, R, F0, diffuse_color);
+        let light_contrib = spot_light(pbr_in.world_position.xyz, light, roughness, NdotV, pbr_in.N, pbr_in.V, R, F0, diffuse_color);
         light_accum = light_accum + light_contrib * shadow;
     }
 
@@ -207,9 +207,9 @@ fn pbr(
         var shadow: f32 = 1.0;
         if ((mesh.flags & MESH_FLAGS_SHADOW_RECEIVER_BIT) != 0u
                 && (light.flags & DIRECTIONAL_LIGHT_FLAGS_SHADOWS_ENABLED_BIT) != 0u) {
-            shadow = fetch_directional_shadow(i, in.world_position, in.world_normal);
+            shadow = fetch_directional_shadow(i, pbr_in.world_position, pbr_in.world_normal);
         }
-        let light_contrib = directional_light(light, roughness, NdotV, in.N, in.V, R, F0, diffuse_color);
+        let light_contrib = directional_light(light, roughness, NdotV, pbr_in.N, pbr_in.V, R, F0, diffuse_color);
         light_accum = light_accum + light_contrib * shadow;
     }
 
@@ -225,7 +225,7 @@ fn pbr(
     output_color = cluster_debug_visualization(
         output_color,
         view_z,
-        in.is_orthographic,
+        pbr_in.is_orthographic,
         offset_and_counts,
         cluster_index,
     );
@@ -233,9 +233,9 @@ fn pbr(
     return output_color;
 }
 
-fn tone_mapping(in: vec4<f32>) -> vec4<f32> {
+fn tone_mapping(v_in: vec4<f32>) -> vec4<f32> {
     // tone_mapping
-    return vec4<f32>(reinhard_luminance(in.rgb), in.a);
+    return vec4<f32>(reinhard_luminance(v_in.rgb), v_in.a);
     
     // Gamma correction.
     // Not needed with sRGB buffer

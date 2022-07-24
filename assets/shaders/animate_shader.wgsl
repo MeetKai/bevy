@@ -19,11 +19,11 @@ struct VertexOutput {
 };
 
 @vertex
-fn vertex(vertex: Vertex) -> VertexOutput {
-    var out: VertexOutput;
-    out.clip_position = mesh_position_local_to_clip(mesh.model, vec4<f32>(vertex.position, 1.0));
-    out.uv = vertex.uv;
-    return out;
+fn vertex_fn(vertex: Vertex) -> VertexOutput {
+    var vout: VertexOutput;
+    vout.clip_position = mesh_position_local_to_clip(mesh.model, vec4<f32>(vertex.position, 1.0));
+    vout.uv = vertex.uv;
+    return vout;
 }
 
 
@@ -55,12 +55,12 @@ fn oklab_to_linear_srgb(c: vec3<f32>) -> vec3<f32> {
 }
 
 @fragment
-fn fragment(in: VertexOutput) -> @location(0) vec4<f32> {
+fn fragment_fn(v_in: VertexOutput) -> @location(0) vec4<f32> {
     let speed = 2.0;
     let t_1 = sin(time.time_since_startup * speed) * 0.5 + 0.5;
     let t_2 = cos(time.time_since_startup * speed);
 
-    let distance_to_center = distance(in.uv, vec2<f32>(0.5)) * 1.4;
+    let distance_to_center = distance(v_in.uv, vec2<f32>(0.5)) * 1.4;
 
     // blending is done in a perceptual color space: https://bottosson.github.io/posts/oklab/
     let red = vec3<f32>(0.627955, 0.224863, 0.125846);

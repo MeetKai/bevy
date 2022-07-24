@@ -574,14 +574,14 @@ struct VertexOutput {
 };
 
 @vertex
-fn vertex(
+fn vertex_fn(
     @location(0) vertex_position: vec3<f32>,
     @location(1) vertex_uv: vec2<f32>
 ) -> VertexOutput {
-    var out: VertexOutput;
-    out.uv = vertex_uv;
-    out.position = view.view_proj * vec4<f32>(vertex_position, 1.0);
-    return out;
+    var vout: VertexOutput;
+    vout.uv = vertex_uv;
+    vout.position = view.view_proj * vec4<f32>(vertex_position, 1.0);
+    return vout;
 }
 ";
 
@@ -607,14 +607,14 @@ struct VertexOutput {
 };
 
 @vertex
-fn vertex(
+fn vertex_fn(
     @location(0) vertex_position: vec3<f32>,
     @location(1) vertex_uv: vec2<f32>
 ) -> VertexOutput {
-    var out: VertexOutput;
-    out.uv = vertex_uv;
-    out.position = view.view_proj * vec4<f32>(vertex_position, 1.0);
-    return out;
+    var vout: VertexOutput;
+    vout.uv = vertex_uv;
+    vout.position = view.view_proj * vec4<f32>(vertex_position, 1.0);
+    return vout;
 }
 ";
 
@@ -639,14 +639,14 @@ struct VertexOutput {
 };
 
 @vertex
-fn vertex(
+fn vertex_fn(
     @location(0) vertex_position: vec3<f32>,
     @location(1) vertex_uv: vec2<f32>
 ) -> VertexOutput {
-    var out: VertexOutput;
-    out.uv = vertex_uv;
-    out.position = view.view_proj * vec4<f32>(vertex_position, 1.0);
-    return out;
+    var vout: VertexOutput;
+    vout.uv = vertex_uv;
+    vout.position = view.view_proj * vec4<f32>(vertex_position, 1.0);
+    return vout;
 }
 ";
 
@@ -674,14 +674,14 @@ struct VertexOutput {
 };
 
 @vertex
-fn vertex(
+fn vertex_fn(
     @location(0) vertex_position: vec3<f32>,
     @location(1) vertex_uv: vec2<f32>
 ) -> VertexOutput {
-    var out: VertexOutput;
-    out.uv = vertex_uv;
-    out.position = view.view_proj * vec4<f32>(vertex_position, 1.0);
-    return out;
+    var vout: VertexOutput;
+    vout.uv = vertex_uv;
+    vout.position = view.view_proj * vec4<f32>(vertex_position, 1.0);
+    return vout;
 }
 ";
 
@@ -705,14 +705,14 @@ struct VertexOutput {
 };
 
 @vertex
-fn vertex(
+fn vertex_fn(
     @location(0) vertex_position: vec3<f32>,
     @location(1) vertex_uv: vec2<f32>
 ) -> VertexOutput {
-    var out: VertexOutput;
-    out.uv = vertex_uv;
-    out.position = view.view_proj * vec4<f32>(vertex_position, 1.0);
-    return out;
+    var vout: VertexOutput;
+    vout.uv = vertex_uv;
+    vout.position = view.view_proj * vec4<f32>(vertex_position, 1.0);
+    return vout;
 }
 ";
         let processor = ShaderProcessor::default();
@@ -745,14 +745,14 @@ struct VertexOutput {
 };
 
 @vertex
-fn vertex(
+fn vertex_fn(
     @location(0) vertex_position: vec3<f32>,
     @location(1) vertex_uv: vec2<f32>
 ) -> VertexOutput {
-    var out: VertexOutput;
-    out.uv = vertex_uv;
-    out.position = view.view_proj * vec4<f32>(vertex_position, 1.0);
-    return out;
+    var vout: VertexOutput;
+    vout.uv = vertex_uv;
+    vout.position = view.view_proj * vec4<f32>(vertex_position, 1.0);
+    return vout;
 }
 ";
         let processor = ShaderProcessor::default();
@@ -787,14 +787,14 @@ struct VertexOutput {
 };
 
 @vertex
-fn vertex(
+fn vertex_fn(
     @location(0) vertex_position: vec3<f32>,
     @location(1) vertex_uv: vec2<f32>
 ) -> VertexOutput {
-    var out: VertexOutput;
-    out.uv = vertex_uv;
-    out.position = view.view_proj * vec4<f32>(vertex_position, 1.0);
-    return out;
+    var vout: VertexOutput;
+    vout.uv = vertex_uv;
+    vout.position = view.view_proj * vec4<f32>(vertex_position, 1.0);
+    return vout;
 }
 ";
         let processor = ShaderProcessor::default();
@@ -950,14 +950,14 @@ struct VertexOutput {
 };
 
 @vertex
-fn vertex(
+fn vertex_fn(
     @location(0) vertex_position: vec3<f32>,
     @location(1) vertex_uv: vec2<f32>
 ) -> VertexOutput {
-    var out: VertexOutput;
-    out.uv = vertex_uv;
-    out.position = view.view_proj * vec4<f32>(vertex_position, 1.0);
-    return out;
+    var vout: VertexOutput;
+    vout.uv = vertex_uv;
+    vout.position = view.view_proj * vec4<f32>(vertex_position, 1.0);
+    return vout;
 }
 ";
         let processor = ShaderProcessor::default();
@@ -992,14 +992,14 @@ struct VertexOutput {
 };
 
 @vertex
-fn vertex(
+fn vertex_fn(
     @location(0) vertex_position: vec3<f32>,
     @location(1) vertex_uv: vec2<f32>
 ) -> VertexOutput {
-    var out: VertexOutput;
-    out.uv = vertex_uv;
-    out.position = view.view_proj * vec4<f32>(vertex_position, 1.0);
-    return out;
+    var vout: VertexOutput;
+    vout.uv = vertex_uv;
+    vout.position = view.view_proj * vec4<f32>(vertex_position, 1.0);
+    return vout;
 }
 ";
         let processor = ShaderProcessor::default();
@@ -1032,14 +1032,14 @@ struct VertexOutput {
 };
 
 @vertex
-fn vertex(
+fn vertex_fn(
     @location(0) vertex_position: vec3<f32>,
     @location(1) vertex_uv: vec2<f32>
 ) -> VertexOutput {
-    var out: VertexOutput;
-    out.uv = vertex_uv;
-    out.position = view.view_proj * vec4<f32>(vertex_position, 1.0);
-    return out;
+    var vout: VertexOutput;
+    vout.uv = vertex_uv;
+    vout.position = view.view_proj * vec4<f32>(vertex_position, 1.0);
+    return vout;
 }
 ";
         let processor = ShaderProcessor::default();
@@ -1072,14 +1072,14 @@ struct VertexOutput {
 };
 
 @vertex
-fn vertex(
+fn vertex_fn(
     @location(0) vertex_position: vec3<f32>,
     @location(1) vertex_uv: vec2<f32>
 ) -> VertexOutput {
-    var out: VertexOutput;
-    out.uv = vertex_uv;
-    out.position = view.view_proj * vec4<f32>(vertex_position, 1.0);
-    return out;
+    var vout: VertexOutput;
+    vout.uv = vertex_uv;
+    vout.position = view.view_proj * vec4<f32>(vertex_position, 1.0);
+    return vout;
 }
 ";
         let processor = ShaderProcessor::default();
@@ -1112,14 +1112,14 @@ struct VertexOutput {
 };
 
 @vertex
-fn vertex(
+fn vertex_fn(
     @location(0) vertex_position: vec3<f32>,
     @location(1) vertex_uv: vec2<f32>
 ) -> VertexOutput {
-    var out: VertexOutput;
-    out.uv = vertex_uv;
-    out.position = view.view_proj * vec4<f32>(vertex_position, 1.0);
-    return out;
+    var vout: VertexOutput;
+    vout.uv = vertex_uv;
+    vout.position = view.view_proj * vec4<f32>(vertex_position, 1.0);
+    return vout;
 }
 ";
         let processor = ShaderProcessor::default();
@@ -1154,14 +1154,14 @@ struct VertexOutput {
 };
 
 @vertex
-fn vertex(
+fn vertex_fn(
     @location(0) vertex_position: vec3<f32>,
     @location(1) vertex_uv: vec2<f32>
 ) -> VertexOutput {
-    var out: VertexOutput;
-    out.uv = vertex_uv;
-    out.position = view.view_proj * vec4<f32>(vertex_position, 1.0);
-    return out;
+    var vout: VertexOutput;
+    vout.uv = vertex_uv;
+    vout.position = view.view_proj * vec4<f32>(vertex_position, 1.0);
+    return vout;
 }
 ";
         let processor = ShaderProcessor::default();

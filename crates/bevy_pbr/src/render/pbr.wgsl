@@ -15,14 +15,14 @@ struct FragmentInput {
 };
 
 @fragment
-fn fragment(in: FragmentInput) -> @location(0) vec4<f32> {
+fn fragment_fn(frag_in: FragmentInput) -> @location(0) vec4<f32> {
     var output_color: vec4<f32> = material.base_color;
 #ifdef VERTEX_COLORS
-    output_color = output_color * in.color;
+    output_color = output_color * frag_in.color;
 #endif
 #ifdef VERTEX_UVS
     if ((material.flags & STANDARD_MATERIAL_FLAGS_BASE_COLOR_TEXTURE_BIT) != 0u) {
-        output_color = output_color * textureSample(base_color_texture, base_color_sampler, in.uv);
+        output_color = output_color * textureSample(base_color_texture, base_color_sampler, frag_in.uv);
     }
 #endif
 
@@ -41,7 +41,7 @@ fn fragment(in: FragmentInput) -> @location(0) vec4<f32> {
         var emissive: vec4<f32> = material.emissive;
 #ifdef VERTEX_UVS
         if ((material.flags & STANDARD_MATERIAL_FLAGS_EMISSIVE_TEXTURE_BIT) != 0u) {
-            emissive = vec4<f32>(emissive.rgb * textureSample(emissive_texture, emissive_sampler, in.uv).rgb, 1.0);
+            emissive = vec4<f32>(emissive.rgb * textureSample(emissive_texture, emissive_sampler, frag_in.uv).rgb, 1.0);
         }
 #endif
         pbr_input.material.emissive = emissive;
@@ -50,7 +50,7 @@ fn fragment(in: FragmentInput) -> @location(0) vec4<f32> {
         var perceptual_roughness: f32 = material.perceptual_roughness;
 #ifdef VERTEX_UVS
         if ((material.flags & STANDARD_MATERIAL_FLAGS_METALLIC_ROUGHNESS_TEXTURE_BIT) != 0u) {
-            let metallic_roughness = textureSample(metallic_roughness_texture, metallic_roughness_sampler, in.uv);
+            let metallic_roughness = textureSample(metallic_roughness_texture, metallic_roughness_sampler, frag_in.uv);
             // Sampling from GLTF standard channels for now
             metallic = metallic * metallic_roughness.b;
             perceptual_roughness = perceptual_roughness * metallic_roughness.g;
@@ -62,31 +62,31 @@ fn fragment(in: FragmentInput) -> @location(0) vec4<f32> {
         var occlusion: f32 = 1.0;
 #ifdef VERTEX_UVS
         if ((material.flags & STANDARD_MATERIAL_FLAGS_OCCLUSION_TEXTURE_BIT) != 0u) {
-            occlusion = textureSample(occlusion_texture, occlusion_sampler, in.uv).r;
+            occlusion = textureSample(occlusion_texture, occlusion_sampler, frag_in.uv).r;
         }
 #endif
         pbr_input.occlusion = occlusion;
 
-        pbr_input.frag_coord = in.frag_coord;
-        pbr_input.world_position = in.world_position;
-        pbr_input.world_normal = in.world_normal;
+        pbr_input.frag_coord = frag_in.frag_coord;
+        pbr_input.world_position = frag_in.world_position;
+        pbr_input.world_normal = frag_in.world_normal;
 
         pbr_input.is_orthographic = view.projection[3].w == 1.0;
 
         pbr_input.N = prepare_normal(
             material.flags,
-            in.world_normal,
+            frag_in.world_normal,
 #ifdef VERTEX_TANGENTS
 #ifdef STANDARDMATERIAL_NORMAL_MAP
-            in.world_tangent,
+            frag_in.world_tangent,
 #endif
 #endif
 #ifdef VERTEX_UVS
-            in.uv,
+            frag_in.uv,
 #endif
-            in.is_front,
+            frag_in.is_front,
         );
-        pbr_input.V = calculate_view(in.world_position, pbr_input.is_orthographic);
+        pbr_input.V = calculate_view(frag_in.world_position, pbr_input.is_orthographic);
 
         output_color = tone_mapping(pbr(pbr_input));
     }

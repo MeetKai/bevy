@@ -12,16 +12,16 @@ struct VertexOutput {
 };
 
 @vertex
-fn vertex(
+fn vertex_fn(
     @location(0) vertex_position: vec3<f32>,
     @location(1) vertex_uv: vec2<f32>,
     @location(2) vertex_color: vec4<f32>,
 ) -> VertexOutput {
-    var out: VertexOutput;
-    out.uv = vertex_uv;
-    out.position = view.view_proj * vec4<f32>(vertex_position, 1.0);
-    out.color = vertex_color;
-    return out;
+    var vout: VertexOutput;
+    vout.uv = vertex_uv;
+    vout.position = view.view_proj * vec4<f32>(vertex_position, 1.0);
+    vout.color = vertex_color;
+    return vout;
 } 
 
 @group(1) @binding(0)
@@ -30,8 +30,8 @@ var sprite_texture: texture_2d<f32>;
 var sprite_sampler: sampler;
 
 @fragment
-fn fragment(in: VertexOutput) -> @location(0) vec4<f32> {
-    var color = textureSample(sprite_texture, sprite_sampler, in.uv); 
-    color = in.color * color;
+fn fragment_fn(v_in: VertexOutput) -> @location(0) vec4<f32> {
+    var color = textureSample(sprite_texture, sprite_sampler, v_in.uv); 
+    color = v_in.color * color;
     return color;
 }

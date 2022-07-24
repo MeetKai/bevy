@@ -21,11 +21,11 @@ struct VertexOutput {
 };
 
 @vertex
-fn vertex(vertex: Vertex) -> VertexOutput {
-    var out: VertexOutput;
-    out.clip_position = mesh_position_local_to_clip(mesh.model, vec4<f32>(vertex.position, 1.0));
-    out.blend_color = vertex.blend_color;
-    return out;
+fn vertex_fn(vertex: Vertex) -> VertexOutput {
+    var vout: VertexOutput;
+    vout.clip_position = mesh_position_local_to_clip(mesh.model, vec4<f32>(vertex.position, 1.0));
+    vout.blend_color = vertex.blend_color;
+    return vout;
 }
 
 struct FragmentInput {
@@ -33,6 +33,6 @@ struct FragmentInput {
 };
 
 @fragment
-fn fragment(input: FragmentInput) -> @location(0) vec4<f32> {
+fn fragment_fn(input: FragmentInput) -> @location(0) vec4<f32> {
     return material.color * input.blend_color;
 }

@@ -6,7 +6,7 @@ struct CustomMaterial {
 var<uniform> material: CustomMaterial;
 
 @fragment
-fn fragment(
+fn fragment_fn(
     #import bevy_pbr::mesh_vertex_output
 ) -> @location(0) vec4<f32> {
 #ifdef IS_RED

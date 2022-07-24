@@ -601,14 +601,14 @@ impl SpecializedMeshPipeline for MeshPipeline {
         Ok(RenderPipelineDescriptor {
             vertex: VertexState {
                 shader: MESH_SHADER_HANDLE.typed::<Shader>(),
-                entry_point: "vertex".into(),
+                entry_point: "vertex_fn".into(),
                 shader_defs: shader_defs.clone(),
                 buffers: vec![vertex_buffer_layout],
             },
             fragment: Some(FragmentState {
                 shader: MESH_SHADER_HANDLE.typed::<Shader>(),
                 shader_defs,
-                entry_point: "fragment".into(),
+                entry_point: "fragment_fn".into(),
                 targets: vec![Some(ColorTargetState {
                     format: TextureFormat::bevy_default(),
                     blend,

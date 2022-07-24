@@ -22,19 +22,19 @@ struct VertexOutput {
 }
 
 @vertex
-fn vertex(vertex: Vertex) -> VertexOutput {
-    var out: VertexOutput;
-    out.uv = vertex.uv;
-    out.world_position = mesh2d_position_local_to_world(mesh.model, vec4<f32>(vertex.position, 1.0));
-    out.clip_position = mesh2d_position_world_to_clip(out.world_position);
-    out.world_normal = mesh2d_normal_local_to_world(vertex.normal);
+fn vertex_fn(v_in: Vertex) -> VertexOutput {
+    var vout: VertexOutput;
+    vout.uv = v_in.uv;
+    vout.world_position = mesh2d_position_local_to_world(mesh.model, vec4<f32>(v_in.position, 1.0));
+    vout.clip_position = mesh2d_position_world_to_clip(vout.world_position);
+    vout.world_normal = mesh2d_normal_local_to_world(v_in.normal);
 #ifdef VERTEX_TANGENTS
-    out.world_tangent = mesh2d_tangent_local_to_world(vertex.tangent);
+    vout.world_tangent = mesh2d_tangent_local_to_world(v_in.tangent);
 #endif
 #ifdef VERTEX_COLORS
-    out.color = vertex.color;
+    vout.color = v_in.color;
 #endif
-    return out;
+    return vout;
 }
 
 struct FragmentInput {
@@ -43,6 +43,6 @@ struct FragmentInput {
 };
 
 @fragment
-fn fragment(in: FragmentInput) -> @location(0) vec4<f32> {
+fn fragment_fn(frag_in: FragmentInput) -> @location(0) vec4<f32> {
     return vec4<f32>(1.0, 0.0, 1.0, 1.0);
 }
