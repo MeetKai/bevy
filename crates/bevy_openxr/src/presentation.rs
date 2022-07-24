@@ -46,19 +46,41 @@ pub fn create_graphics_context(
             .api_version(vk_version);
 
         let mut flags = hal::InstanceFlags::empty();
-        if cfg!(debug_assertions) {
-            flags |= hal::InstanceFlags::VALIDATION;
-            flags |= hal::InstanceFlags::DEBUG;
-        }
+        // if cfg!(debug_assertions) {
+        // flags |= hal::InstanceFlags::VALIDATION;
+        // flags |= hal::InstanceFlags::DEBUG;
+        // }
 
         let mut instance_extensions =
             <hal::api::Vulkan as hal::Api>::Instance::required_extensions(&vk_entry, flags)
                 .map_err(Box::new)?;
+
+        let mut vk_legacy_extensions = instance.vulkan_legacy_instance_extensions(system).unwrap();
+        //  seems to help occulus?
+        vk_legacy_extensions.push_str(" VK_EXT_debug_report");
+        dbg!(&vk_legacy_extensions);
+        let vk_legacy_extensions = vk_legacy_extensions.split_whitespace().collect::<Vec<_>>();
+        let vk_legacy_extensions = vk_legacy_extensions
+            .iter()
+            .map(|ext| {
+                let mut v = ext.as_bytes().to_owned();
+                v.push(0);
+                v
+            })
+            .collect::<Vec<_>>();
+
+        dbg!(&instance_extensions);
+        let vk_legacy_extensions = vk_legacy_extensions
+            .iter()
+            .map(|bytes| CStr::from_bytes_with_nul(&bytes).unwrap())
+            .collect::<Vec<_>>();
         //  TODO: only enable portability when running on macos with metal
         // instance_extensions
         //     .push(CStr::from_bytes_with_nul(b"VK_KHR_portability_enumeration\0").unwrap());
         let instance_extensions_ptrs = instance_extensions
+            // let instance_extensions_ptrs = vk_legacy_extensions
             .iter()
+            .chain(vk_legacy_extensions.iter())
             .map(|x| x.as_ptr())
             .collect::<Vec<_>>();
 
@@ -132,10 +154,13 @@ pub fn create_graphics_context(
 
         //  TODO: how do we get limits from actual device?
         let uab_types = hal::UpdateAfterBindTypes::from_limits(
-            &device_descriptor.limits,
-            &vk::PhysicalDeviceLimits::default(),
+            &Default::default(),
+            &hal_exposed_adapter
+                .adapter
+                .physical_device_capabilities()
+                .properties()
+                .limits,
         );
-
         let mut physical_features = hal_exposed_adapter.adapter.physical_device_features(
             &device_extensions,
             device_descriptor.features,

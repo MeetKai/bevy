@@ -97,6 +97,7 @@ fn selected_extensions(entry: &xr::Entry) -> xr::ExtensionSet {
     // todo: set depth layer
     exts.khr_vulkan_enable = available.khr_vulkan_enable;
     exts.khr_vulkan_enable2 = available.khr_vulkan_enable2;
+    assert!(available.khr_vulkan_enable2);
     if cfg!(debug_assertions) {
         exts.ext_debug_utils = available.ext_debug_utils;
     }
@@ -130,6 +131,7 @@ fn selected_extensions(entry: &xr::Entry) -> xr::ExtensionSet {
     {
         exts.khr_android_create_instance = available.khr_android_create_instance;
         exts.khr_android_thread_settings = available.khr_android_thread_settings;
+        exts.ext_debug_utils = true;
         // todo: set APPLICATION_MAIN and RENDER_MAIN threads
     }
     #[cfg(windows)]
@@ -158,7 +160,7 @@ impl OpenXrContext {
         let entry = xr::Entry::linked();
 
         #[cfg(target_os = "android")]
-        entry.initialize_android_loader();
+        entry.initialize_android_loader().unwrap();
 
         let extensions = selected_extensions(&entry);
 
