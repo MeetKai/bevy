@@ -21,7 +21,7 @@ fn main() {
     App::new()
         .insert_resource(LogSettings {
             level: Level::INFO,
-            filter: "naga=warn".to_string(),
+            filter: "naga=trace".to_string(),
         })
         .add_plugins(DefaultPlugins)
         .add_startup_system(startup)
