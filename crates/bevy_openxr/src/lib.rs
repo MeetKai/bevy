@@ -165,9 +165,9 @@ pub struct OpenXrContext {
 impl OpenXrContext {
     fn new(form_factor: OpenXrFormFactor) -> Result<Self, OpenXrError> {
         #[cfg(any(target_os = "android"))]
-        let entry = xr::Entry::load().map_err(OpenXrError::Loader)?;
+        let entry = unsafe { xr::Entry::load().map_err(OpenXrError::Loader)? };
         #[cfg(not(any(target_os = "android")))]
-        let entry = xr::Entry::load().unwrap();
+        let entry = unsafe { xr::Entry::load().unwrap() };
 
         #[cfg(target_os = "android")]
         entry.initialize_android_loader().unwrap();

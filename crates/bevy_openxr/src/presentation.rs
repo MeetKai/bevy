@@ -117,8 +117,7 @@ pub fn create_graphics_context(
         };
 
         let vk_physical_device = vk::PhysicalDevice::from_raw(
-            instance
-                .vulkan_graphics_device(system, vk_instance.handle().as_raw() as _)
+            unsafe { instance.vulkan_graphics_device(system, vk_instance.handle().as_raw() as _) }
                 .map_err(Box::new)
                 .unwrap() as _,
         );
