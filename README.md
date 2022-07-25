@@ -1,13 +1,22 @@
 This is a work-in-progress branch of bevy to add openxr support. It is based mostly off of [zarik5's work](https://github.com/zarik5/bevy). The goal is to support both Oculus and PCVR.
 
-If running on Oculus, download [oculus sdk](https://developer.oculus.com/downloads/package/oculus-openxr-mobile-sdk/) and move corresponding libraries into `libs/`
+## Running on Oculus
+
+If running on Oculus, download [oculus sdk](https://developer.oculus.com/downloads/package/oculus-openxr-mobile-sdk/) and move corresponding library into `libs/`
 
 ```
 libs\arm64-v8a\libopenxr_loader.so
-libs\armeabi-v7a\libopenxr_loader.so
 ```
 
+You also will need android SDK 26 and android NDK setup, with $ANDROID_NDK_ROOT and $ANDROID_SDK_ROOT environemnt variables set correctly. Also install the latest `cargo-apk` with `cargo install cargo-apk -f`
+
+Build, install, and run the apk using `cargo apk run --example vr_cubes_android --features bevy_openxr`
+
+## Running locally (PCVR)
+
 Run the example with `cargo run --example vr_cubes --release`
+
+## About this fork
 
 This branch has 0.8-dev as of ~7/22/2022 rebased in.
 
