@@ -9,41 +9,23 @@ libs\armeabi-v7a\libopenxr_loader.so
 
 Run the example with `cargo run --example vr_cubes --release`
 
-This branch has 0.6 rebased in.
-
-- [x] Get anything to render at all with vulkan
-- [x] Use wgpu instead of Vulkan abstractions
-
-  - vk::ImageView -> wgpu::TextureView
-  - vk::Image -> wgpu::Texture
-
-- [x] Integrate with bevy render pipeline
-
-  - currently using swapchain per-eye since bevy doesnt have multiview support yet
-  - bevy_openxr plugin replaces `RenderDevice` and `RenderQueue` so that the render pipeline uses the device provided by openxr runtime
-  - we also had to hack in adding an empty `Windows` so that plugins looking for windows such as bevy_ui and perspective camera don't panic
-  - there are a few pipeline changes that had to be made that I will enumerate later (support for XrProjection camera projection, add hard-coded "left/right_eye" active cameras, support XrProjection frustra updates)
-
-- [] Add back in motion controller/input support (it was ripped out in an effort to get the example to not panic)
-- [x] Prevent window from opening (shows as Not Responding on Windows OS).
-- [ ] Open Question: ability to have winit windows co-exist with openxr runner
-
-  - this could be useful for things like configuration UIs in pancake land
+This branch has 0.8-dev as of ~7/22/2022 rebased in.
 
 - [x] Get Oculus working
 
-  - no winit needed
-  - upgrading to ndk-glue 0.6.0 fixed the crash, but this will likely break normal android support until winit upgrades ndk-glue
+  - currently have shadows disabled -- one of the shaders appears to cause a segfault in the oculus shader compiler
 
-    - https://github.com/rust-windowing/winit/pull/2163
+- [ ] Add back in motion controller/input support (it was ripped out in an effort to get the example to not panic)
+- [x] Prevent window from opening (shows as Not Responding on Windows OS).
+- [ ] Open Question: ability to have winit windows co-exist with openxr runner
+
+  - this could be useful for things like configuration UIs in pancake land when doing PCVR
 
 - [ ] MSAA
 
   - Oculus claims to support 4x
 
 - [ ] bevy_ui
-
-
 
 # [![Bevy](assets/branding/bevy_logo_light_dark_and_dimmed.svg)](https://bevyengine.org)
 
@@ -134,9 +116,9 @@ Bevy can be built just fine using default configuration on stable Rust. However 
 
 Bevy is only possible because of the hard work put into these foundational technologies:
 
-* [wgpu](https://wgpu.rs/): modern / low-level / cross-platform graphics library inspired by Vulkan
-* [glam-rs](https://github.com/bitshifter/glam-rs): a simple and fast 3D math library for games and graphics
-* [winit](https://github.com/rust-windowing/winit): cross-platform window creation and management in Rust
+- [wgpu](https://wgpu.rs/): modern / low-level / cross-platform graphics library inspired by Vulkan
+- [glam-rs](https://github.com/bitshifter/glam-rs): a simple and fast 3D math library for games and graphics
+- [winit](https://github.com/rust-windowing/winit): cross-platform window creation and management in Rust
 
 ## [Bevy Cargo Features][cargo_features]
 
@@ -159,8 +141,8 @@ Additionally, we would like to thank the [Amethyst](https://github.com/amethyst/
 Bevy is free, open source and permissively licensed!
 Except where noted (below and/or in individual files), all code in this repository is dual-licensed under either:
 
-* MIT License ([LICENSE-MIT](LICENSE-MIT) or [http://opensource.org/licenses/MIT](http://opensource.org/licenses/MIT))
-* Apache License, Version 2.0 ([LICENSE-APACHE](LICENSE-APACHE) or [http://www.apache.org/licenses/LICENSE-2.0](http://www.apache.org/licenses/LICENSE-2.0))
+- MIT License ([LICENSE-MIT](LICENSE-MIT) or [http://opensource.org/licenses/MIT](http://opensource.org/licenses/MIT))
+- Apache License, Version 2.0 ([LICENSE-APACHE](LICENSE-APACHE) or [http://www.apache.org/licenses/LICENSE-2.0](http://www.apache.org/licenses/LICENSE-2.0))
 
 at your option.
 This means you can select the license you prefer!
