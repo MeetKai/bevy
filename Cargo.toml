@@ -1579,5 +1579,5 @@ debug-assertions = true
 
 [patch.crates-io]
 # wgpu-core = { path = "../wgpu/wgpu-core" }
-wgpu = { path = "../wgpu/wgpu" }
-wgpu-hal = { path = "../wgpu/wgpu-hal" }
+# wgpu = { path = "../wgpu/wgpu" }
+# wgpu-hal = { path = "../wgpu/wgpu-hal" }
