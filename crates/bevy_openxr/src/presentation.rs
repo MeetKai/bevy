@@ -34,7 +34,7 @@ pub fn create_graphics_context(
     instance: &xr::Instance,
     system: xr::SystemId,
 ) -> Result<(GraphicsContextHandles, XrGraphicsContext), Box<dyn Error>> {
-    let mut device_descriptor = wgpu::DeviceDescriptor::default();
+    let device_descriptor = wgpu::DeviceDescriptor::default();
     // device_descriptor.limits = Limits::downlevel_defaults();
 
     if instance.exts().khr_vulkan_enable2.is_some() {
@@ -78,7 +78,7 @@ pub fn create_graphics_context(
         let create_info = vk::InstanceCreateInfo::builder()
             .application_info(&vk_app_info)
             .enabled_layer_names(&layers)
-            // .enabled_extension_names(&instance_extensions_ptrs)
+            .enabled_extension_names(&instance_extensions_ptrs)
             // .enabled_layer_names(&layers_names_raw)
 
             // .flags(InstanceCreateFlags::ENUMERATE_PORTABILITY_KHR)
@@ -147,12 +147,12 @@ pub fn create_graphics_context(
             .adapter
             .required_device_extensions(device_descriptor.features)
             .into_iter()
-            .filter(|ext| {
-                hal_exposed_adapter
-                    .adapter
-                    .physical_device_capabilities()
-                    .supports_extension(ext)
-            })
+            // .filter(|ext| {
+            //     hal_exposed_adapter
+            //         .adapter
+            //         .physical_device_capabilities()
+            //         .supports_extension(ext)
+            // })
             // .filter(|ext| ext != &khr::TimelineSemaphore::name())
             .collect::<Vec<_>>();
         dbg!(&device_extensions);
@@ -163,12 +163,8 @@ pub fn create_graphics_context(
 
         //  TODO: how do we get limits from actual device?
         let uab_types = hal::UpdateAfterBindTypes::from_limits(
-            &Default::default(),
-            &hal_exposed_adapter
-                .adapter
-                .physical_device_capabilities()
-                .properties()
-                .limits,
+            &device_descriptor.limits,
+            &vk::PhysicalDeviceLimits::default(),
         );
         let mut physical_features = hal_exposed_adapter.adapter.physical_device_features(
             &device_extensions,
@@ -192,7 +188,6 @@ pub fn create_graphics_context(
             let info = vk::DeviceCreateInfo::builder()
                 .queue_create_infos(&family_infos)
                 .enabled_extension_names(&device_extensions_ptrs)
-                // .enabled_layer_names(&layers)
                 .push_next(&mut multiview);
             let info = physical_features.add_to_device_create_builder(info);
 
