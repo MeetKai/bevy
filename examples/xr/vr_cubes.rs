@@ -1,5 +1,6 @@
 use bevy::{
     app::AppExit,
+    log::{Level, LogSettings},
     openxr::{camera::XrPawn, OCULUS_TOUCH_PROFILE},
     prelude::*,
     utils::Duration,
@@ -14,7 +15,14 @@ use bevy::{
 #[bevy_main]
 fn main() {
     std::env::set_var("RUST_BACKTRACE", "1");
+    // std::env::set_var("RUST_LOG", "warn");
+    std::env::set_var("VK_INSTANCE_LAYERS", "VK_LAYER_KHRONOS_validation");
+
     App::new()
+        .insert_resource(LogSettings {
+            level: Level::INFO,
+            filter: "naga=warn".to_string(),
+        })
         .add_plugins(DefaultPlugins)
         .add_startup_system(startup)
         .add_startup_system(init_camera_position)
