@@ -1,17 +1,7 @@
-use ash::{
-    extensions::khr,
-    vk::{self, Handle, InstanceCreateFlags, SemaphoreCreateInfo},
-};
+use ash::vk::{self, Handle, InstanceCreateFlags};
 use bevy_xr::presentation::XrGraphicsContext;
-use hal::{Adapter, Device, InstanceFlags};
 use openxr as xr;
-use std::{
-    error::Error,
-    ffi::{c_void, CStr},
-    os::raw::c_char,
-    sync::Arc,
-};
-use wgpu::Limits;
+use std::{error::Error, ffi::CStr, sync::Arc};
 use wgpu_hal as hal;
 use xr::sys::platform::VkInstanceCreateInfo;
 
@@ -35,7 +25,6 @@ pub fn create_graphics_context(
     system: xr::SystemId,
 ) -> Result<(GraphicsContextHandles, XrGraphicsContext), Box<dyn Error>> {
     let device_descriptor = wgpu::DeviceDescriptor::default();
-    // device_descriptor.limits = Limits::downlevel_defaults();
 
     if instance.exts().khr_vulkan_enable2.is_some() {
         let vk_entry = unsafe { ash::Entry::load().unwrap() };
@@ -62,39 +51,31 @@ pub fn create_graphics_context(
 
         let mut instance_extensions =
             <hal::api::Vulkan as hal::Api>::Instance::required_extensions(&vk_entry, flags)
-                .map_err(Box::new)
-                .unwrap();
-        instance_extensions.retain(|ext| ext != &vk::KhrGetPhysicalDeviceProperties2Fn::name());
-
-        dbg!(&instance_extensions);
+                .map_err(Box::new)?;
+        if cfg!(target_os = "macos") {
+            instance_extensions
+                .push(CStr::from_bytes_with_nul(b"VK_KHR_portability_enumeration\0").unwrap());
+        }
         let instance_extensions_ptrs = instance_extensions
             .iter()
             .map(|x| x.as_ptr())
             .collect::<Vec<_>>();
 
-        let layers = [CStr::from_bytes_with_nul(b"VK_LAYER_KHRONOS_validation\0")
-            .unwrap()
-            .as_ptr()];
         let create_info = vk::InstanceCreateInfo::builder()
             .application_info(&vk_app_info)
-            .enabled_layer_names(&layers)
             .enabled_extension_names(&instance_extensions_ptrs)
-            // .enabled_layer_names(&layers_names_raw)
-
-            // .flags(InstanceCreateFlags::ENUMERATE_PORTABILITY_KHR)
-            ;
+            .flags(InstanceCreateFlags::ENUMERATE_PORTABILITY_KHR)
+            .build();
 
         let vk_instance = unsafe {
             let vk_instance = instance
                 .create_vulkan_instance(
                     system,
                     std::mem::transmute(vk_entry.static_fn().get_instance_proc_addr),
-                    &*create_info as *const vk::InstanceCreateInfo as *const VkInstanceCreateInfo,
+                    &create_info as *const vk::InstanceCreateInfo as *const VkInstanceCreateInfo,
                 )
-                .map_err(Box::new)
-                .unwrap()
-                .map_err(|e| Box::new(vk::Result::from_raw(e)))
-                .unwrap();
+                .map_err(Box::new)?
+                .map_err(|e| Box::new(vk::Result::from_raw(e)))?;
 
             ash::Instance::load(
                 vk_entry.static_fn(),
@@ -106,25 +87,22 @@ pub fn create_graphics_context(
                 vk_entry.clone(),
                 vk_instance.clone(),
                 vk_version,
-                26, //TODO: is this correct?
+                26,
                 instance_extensions,
                 flags,
                 false, //TODO: is this correct?
                 Some(Box::new(instance.clone())),
             )
-            .map_err(Box::new)
-            .unwrap()
+            .map_err(Box::new)?
         };
 
         let vk_physical_device = vk::PhysicalDevice::from_raw(
             unsafe { instance.vulkan_graphics_device(system, vk_instance.handle().as_raw() as _) }
-                .map_err(Box::new)
-                .unwrap() as _,
+                .map_err(Box::new)? as _,
         );
         let hal_exposed_adapter = hal_instance
             .expose_adapter(vk_physical_device)
-            .ok_or_else(|| Box::new(AdapterError))
-            .unwrap();
+            .ok_or_else(|| Box::new(AdapterError))?;
 
         let queue_family_index = unsafe {
             vk_instance
@@ -144,17 +122,7 @@ pub fn create_graphics_context(
 
         let device_extensions = hal_exposed_adapter
             .adapter
-            .required_device_extensions(device_descriptor.features)
-            .into_iter()
-            // .filter(|ext| {
-            //     hal_exposed_adapter
-            //         .adapter
-            //         .physical_device_capabilities()
-            //         .supports_extension(ext)
-            // })
-            // .filter(|ext| ext != &khr::TimelineSemaphore::name())
-            .collect::<Vec<_>>();
-        dbg!(&device_extensions);
+            .required_device_extensions(device_descriptor.features);
         let device_extensions_ptrs = device_extensions
             .iter()
             .map(|x| x.as_ptr())
@@ -165,13 +133,12 @@ pub fn create_graphics_context(
             &device_descriptor.limits,
             &vk::PhysicalDeviceLimits::default(),
         );
+
         let mut physical_features = hal_exposed_adapter.adapter.physical_device_features(
             &device_extensions,
             device_descriptor.features,
             uab_types,
         );
-
-        dbg!(&physical_features);
 
         let family_info = vk::DeviceQueueCreateInfo::builder()
             .queue_family_index(queue_family_index)
@@ -188,7 +155,7 @@ pub fn create_graphics_context(
                 .queue_create_infos(&family_infos)
                 .enabled_extension_names(&device_extensions_ptrs)
                 .push_next(&mut multiview);
-            let info = physical_features.add_to_device_create_builder(info);
+            let info = physical_features.add_to_device_create_builder(info).build();
 
             unsafe {
                 let vk_device = instance
@@ -198,21 +165,12 @@ pub fn create_graphics_context(
                         vk_physical_device.as_raw() as _,
                         &info as *const _ as *const _,
                     )
-                    .map_err(Box::new)
-                    .unwrap()
-                    .map_err(|e| Box::new(vk::Result::from_raw(e)))
-                    .unwrap();
+                    .map_err(Box::new)?
+                    .map_err(|e| Box::new(vk::Result::from_raw(e)))?;
 
                 ash::Device::load(vk_instance.fp_v1_0(), vk::Device::from_raw(vk_device as _))
             }
         };
-
-        // let mut sem_type_info =
-        //     vk::SemaphoreTypeCreateInfo::builder().semaphore_type(vk::SemaphoreType::TIMELINE);
-        // let vk_info = vk::SemaphoreCreateInfo::builder().push_next(&mut sem_type_info);
-        // dbg!("manual create sema");
-        // unsafe { vk_device.create_semaphore(&vk_info, None) }.unwrap();
-        // dbg!("after manual create sema");
         let hal_device = unsafe {
             hal_exposed_adapter
                 .adapter
@@ -225,8 +183,7 @@ pub fn create_graphics_context(
                     queue_family_index,
                     queue_index,
                 )
-                .map_err(Box::new)
-                .unwrap()
+                .map_err(Box::new)?
         };
 
         let wgpu_instance = unsafe { wgpu::Instance::from_hal::<hal::api::Vulkan>(hal_instance) };
@@ -234,8 +191,7 @@ pub fn create_graphics_context(
         let (wgpu_device, wgpu_queue) = unsafe {
             wgpu_adapter
                 .create_device_from_hal(hal_device, &device_descriptor, None)
-                .map_err(Box::new)
-                .unwrap()
+                .map_err(Box::new)?
         };
 
         Ok((
