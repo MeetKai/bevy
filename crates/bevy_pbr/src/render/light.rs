@@ -1585,6 +1585,10 @@ pub fn queue_shadows(
     directional_light_entities: Query<&VisibleEntities, With<ExtractedDirectionalLight>>,
     spot_light_entities: Query<&VisibleEntities, With<ExtractedPointLight>>,
 ) {
+    if cfg!(target_os = "android") {
+        // broken on oculus currently: https://github.com/kcking/quest2-shader-segfault
+        return;
+    }
     for view_lights in &view_lights {
         let draw_shadow_mesh = shadow_draw_functions
             .read()
