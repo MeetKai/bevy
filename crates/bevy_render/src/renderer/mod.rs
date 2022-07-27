@@ -102,7 +102,6 @@ pub async fn initialize_renderer(
         .await
         .expect("Unable to find a GPU! Make sure you have installed required drivers!");
 
-    dbg!("initialize renderer");
     let adapter_info = adapter.get_info();
     info!("{:?}", adapter_info);
 

@@ -155,7 +155,6 @@ impl ShaderCache {
                 render_device
                     .wgpu_device()
                     .push_error_scope(wgpu::ErrorFilter::Validation);
-                dbg!("create_shader_module for ", shader_defs);
                 let shader_module = render_device.create_shader_module(module_descriptor);
                 let error = render_device.wgpu_device().pop_error_scope();
 
@@ -454,7 +453,6 @@ impl PipelineCache {
                     targets,
                 }),
         };
-        dbg!(&descriptor.label, &descriptor.vertex, &descriptor.fragment);
         let pipeline = self.device.create_render_pipeline(&descriptor);
 
         CachedPipelineState::Ok(Pipeline::RenderPipeline(pipeline))

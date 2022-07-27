@@ -156,7 +156,6 @@ impl Plugin for RenderPlugin {
                 app.world.get_resource::<wgpu::AdapterInfo>(),
             ) {
                 (Some(dev), Some(queue), Some(adapter_info)) => {
-                    dbg!("already have render device");
                     (dev.clone(), queue.clone(), adapter_info.clone())
                 }
                 _ => futures_lite::future::block_on(renderer::initialize_renderer(
