@@ -91,23 +91,13 @@ pub enum OpenXrError {
 fn selected_extensions(entry: &xr::Entry) -> xr::ExtensionSet {
     let available = entry.enumerate_extensions().unwrap();
 
-    // assert!(available.khr_vulkan_enable2);
-    // let mut enabled = xr::ExtensionSet::default();
-    // enabled.khr_vulkan_enable2 = true;
-    // #[cfg(target_os = "android")]
-    // {
-    //     enabled.khr_android_create_instance = true;
-    // }
-
-    // return enabled;
-
     let mut exts = xr::ExtensionSet::default();
     // Complete list: https://www.khronos.org/registry/OpenXR/specs/1.0/html/xrspec.html#extension-appendices-list
     exts.khr_composition_layer_depth = available.khr_composition_layer_depth;
     // todo: set depth layer
     exts.khr_vulkan_enable = available.khr_vulkan_enable;
-    exts.khr_vulkan_enable2 = available.khr_vulkan_enable2;
-    assert!(available.khr_vulkan_enable2);
+    //  required for how we use openxr library
+    exts.khr_vulkan_enable2 = true;
     if cfg!(debug_assertions) {
         exts.ext_debug_utils = available.ext_debug_utils;
     }
@@ -199,7 +189,7 @@ impl OpenXrContext {
         })?;
 
         let (graphics_handles, graphics_context) =
-            unsafe { presentation::create_graphics_context(&instance, system) }
+            presentation::create_graphics_context(&instance, system)
                 .map_err(OpenXrError::GraphicsCreation)?;
 
         Ok(Self {
@@ -465,7 +455,6 @@ fn runner(mut app: App) {
     XrPawn::spawn(app.world.spawn(), left_id, right_id);
 
     'session_loop: loop {
-        bevy_log::debug!("poll_event");
         while let Some(event) = ctx.instance.poll_event(&mut event_storage).unwrap() {
             match event {
                 xr::Event::EventsLost(e) => {
@@ -581,18 +570,15 @@ fn runner(mut app: App) {
         }
 
         if !running {
-            dbg!("!running");
             thread::sleep(Duration::from_millis(200));
             continue;
         }
 
-        bevy_log::debug!("frame_waiter.wait()");
         let frame_state = frame_waiter.wait().unwrap();
         session
             .sync_actions(&[(ActiveActionSet::new(&interaction_context.action_set.lock()))])
             .unwrap();
 
-        bevy_log::debug!("frame_stream.begin()");
         match &mut frame_stream {
             FrameStream::Vulkan(frame_stream) => frame_stream.begin().unwrap(),
             #[cfg(windows)]
@@ -622,7 +608,6 @@ fn runner(mut app: App) {
             // );
         }
 
-        bevy_log::debug!("locate_views()");
         let (_, views) = session
             .locate_views(view_type, frame_state.predicted_display_time, &stage)
             .unwrap();
@@ -643,7 +628,6 @@ fn runner(mut app: App) {
         let swapchains = swapchain
             .get_or_insert_with(|| EyeSwapchains::new(&vk_session, resolutions, device).unwrap());
 
-        bevy_log::debug!("acquire_texture_view()");
         let left_tex = swapchains.left.acquire_texture_view().unwrap();
         let right_tex = swapchains.right.acquire_texture_view().unwrap();
 
@@ -658,7 +642,6 @@ fn runner(mut app: App) {
         swapchains.left.release().unwrap();
         swapchains.right.release().unwrap();
 
-        bevy_log::debug!("frame_stream.end()");
         match &mut frame_stream {
             FrameStream::Vulkan(frame_stream) => frame_stream
                 .end(
@@ -691,9 +674,6 @@ fn runner(mut app: App) {
                 .end(frame_state.predicted_display_time, blend_mode, todo!())
                 .unwrap(),
         }
-
-        bevy_log::error!("rendered frame");
-        dbg!("rendered frame");
 
         handle_output(
             &interaction_context,
