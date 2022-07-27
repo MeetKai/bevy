@@ -131,7 +131,7 @@ impl Plugin for LogPlugin {
         #[cfg(feature = "trace")]
         let subscriber = subscriber.with(tracing_error::ErrorLayer::default());
 
-        #[cfg(all(not(target_arch = "wasm32"),))]
+        #[cfg(all(not(target_arch = "wasm32"), not(target_os = "android")))]
         {
             #[cfg(feature = "tracing-chrome")]
             let chrome_layer = {
@@ -187,11 +187,11 @@ impl Plugin for LogPlugin {
                 .expect("Could not set global default tracing subscriber. If you've already set up a tracing subscriber, please disable LogPlugin from Bevy's DefaultPlugins");
         }
 
-        // #[cfg(target_os = "android")]
-        // {
-        //     let subscriber = subscriber.with(android_tracing::AndroidLayer::default());
-        //     bevy_utils::tracing::subscriber::set_global_default(subscriber)
-        //         .expect("Could not set global default tracing subscriber. If you've already set up a tracing subscriber, please disable LogPlugin from Bevy's DefaultPlugins");
-        // }
+        #[cfg(target_os = "android")]
+        {
+            let subscriber = subscriber.with(android_tracing::AndroidLayer::default());
+            bevy_utils::tracing::subscriber::set_global_default(subscriber)
+                .expect("Could not set global default tracing subscriber. If you've already set up a tracing subscriber, please disable LogPlugin from Bevy's DefaultPlugins");
+        }
     }
 }
