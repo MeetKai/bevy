@@ -30,11 +30,6 @@ bevy_hierarchy = { path = "../bevy_hierarchy", version = "0.8.0-dev" }
 # other
 serde = "1"
 ash = "0.37.0+1.3.209"
-wgpu = { version = "0.13.1", features = [
-    # "vulkan-portability",
-    # ], git = "https://github.com/gfx-rs/wgpu", rev="fa35c0a0f4aaae35ab3d129266199008d89928fa" }
-    # ], git = "https://github.com/gfx-rs/wgpu", branch="v0.12" }
-] }
 wgpu-hal = { version = "0.13.1", features = [
     "vulkan",
     # ], git = "https://github.com/gfx-rs/wgpu", rev="fa35c0a0f4aaae35ab3d129266199008d89928fa" }
@@ -44,18 +39,22 @@ thiserror = "1.0"
 parking_lot = "0.11"
 
 [target.'cfg(target_os = "android")'.dependencies]
-ndk-glue = "0.6.0"
 # No official Khronos loader available for android, so load the one provided by the environment
 openxr = { git = "https://github.com/Ralith/openxrs", default-features = false, features = [
     "loaded",
 ] }
+
 
 [target.'cfg(not(any(target_os = "android", target_os = "macos")))'.dependencies]
 openxr = { git = "https://github.com/Ralith/openxrs", default-features = false, features = [
     "static",
 ] }
 
+[target.'cfg(not(target_os = "macos"))'.dependencies]
+wgpu = { version = "0.13.1" }
+
 [target.'cfg(target_os = "macos")'.dependencies]
 openxr = { git = "https://github.com/Ralith/openxrs", default-features = false, features = [
     "static",
 ] }
+wgpu = { version = "0.13.1", features = ["vulkan-portability"] }
