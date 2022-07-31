@@ -56,6 +56,9 @@ pub fn create_graphics_context(
             instance_extensions
                 .push(CStr::from_bytes_with_nul(b"VK_KHR_portability_enumeration\0").unwrap());
         }
+        //  quest incorrectly reports TimelineSemaphore availability
+        #[cfg(target_os = "android")]
+        instance_extensions.retain(|ext| ext != &vk::KhrGetPhysicalDeviceProperties2Fn::name());
         let instance_extensions_ptrs = instance_extensions
             .iter()
             .map(|x| x.as_ptr())
