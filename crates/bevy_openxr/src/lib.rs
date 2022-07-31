@@ -22,7 +22,8 @@ use bevy_app::{App, AppExit, Plugin};
 use bevy_ecs::event::{Events, ManualEventReader};
 use bevy_xr::{
     presentation::{XrEnvironmentBlendMode, XrGraphicsContext, XrInteractionMode},
-    XrProfiles, XrSessionMode, XrSystem, XrTrackingSource, XrVibrationEvent, XrVisibilityState,
+    XrActionSet, XrProfiles, XrSessionMode, XrSystem, XrTrackingSource, XrVibrationEvent,
+    XrVisibilityState,
 };
 use openxr::{self as xr, sys};
 use parking_lot::RwLock;
@@ -429,6 +430,7 @@ fn runner(mut app: App) {
         next_vsync_time: next_vsync_time.clone(),
     };
 
+    app.world.init_resource::<XrActionSet>();
     app.world.insert_resource(tracking_context.clone());
     app.world
         .insert_resource(XrTrackingSource::new(Box::new(tracking_source)));
@@ -601,11 +603,11 @@ fn runner(mut app: App) {
 
         {
             let _world_cell = app.world.cell();
-            // handle_input(
-            //     &interaction_context,
-            //     &session,
-            //     &mut world_cell.get_resource_mut::<XrActionSet>().unwrap(),
-            // );
+            handle_input(
+                &interaction_context,
+                &session,
+                &mut _world_cell.get_resource_mut::<XrActionSet>().unwrap(),
+            );
         }
 
         let (_, views) = session

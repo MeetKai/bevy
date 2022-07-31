@@ -125,8 +125,8 @@ pub struct OpenXrTrackingContext {
 
 impl OpenXrTrackingContext {
     pub(crate) fn new(
-        _instance: &xr::Instance,
-        _system: xr::SystemId,
+        instance: &xr::Instance,
+        system: xr::SystemId,
         interaction_context: &InteractionContext,
         session: OpenXrSession,
     ) -> Self {
@@ -180,13 +180,17 @@ impl OpenXrTrackingContext {
                 .create_space((*session).clone(), xr::Path::NULL, xr::Posef::IDENTITY)
                 .unwrap(),
         ];
-        // let hand_trackers = instance.supports_hand_tracking(system).unwrap().then(|| {
-        //     [
-        //         session.create_hand_tracker(xr::Hand::LEFT).unwrap(),
-        //         session.create_hand_tracker(xr::Hand::RIGHT).unwrap(),
-        //     ]
-        // });
-        let hand_trackers = None;
+        let hand_trackers = instance
+            .supports_hand_tracking(system)
+            .ok()
+            .map(|b| if b { Some(()) } else { None })
+            .flatten()
+            .map(|_| {
+                [
+                    session.create_hand_tracker(xr::Hand::LEFT).unwrap(),
+                    session.create_hand_tracker(xr::Hand::RIGHT).unwrap(),
+                ]
+            });
 
         Self {
             reference: RwLock::new(reference),

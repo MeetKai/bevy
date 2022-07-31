@@ -253,6 +253,7 @@ pub struct XrProfileDescriptor {
     pub has_haptics: bool,
 }
 
+#[derive(Default)]
 pub struct XrActionSet {
     current_states: HashMap<String, XrActionState>,
     previous_states: HashMap<String, XrActionState>,

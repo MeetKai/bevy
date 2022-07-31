@@ -54,7 +54,7 @@ render = [
   "bevy_internal/bevy_ui",
 ]
 
-xr = ["bevy_internal/bevy_xr"]
+xr = ["bevy_internal/bevy_xr", "bevy_openxr"]
 
 # Optional bevy crates
 bevy_animation = ["bevy_internal/bevy_animation"]

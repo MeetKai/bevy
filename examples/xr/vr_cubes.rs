@@ -19,14 +19,10 @@ fn main() {
     std::env::set_var("VK_INSTANCE_LAYERS", "VK_LAYER_KHRONOS_validation");
 
     App::new()
-        .insert_resource(LogSettings {
-            level: Level::INFO,
-            filter: "naga=trace".to_string(),
-        })
         .add_plugins(DefaultPlugins)
         .add_startup_system(startup)
         .add_startup_system(init_camera_position)
-        // .add_system(interaction)
+        .add_system(interaction)
         .add_system(dummy)
         .run();
 }
@@ -128,13 +124,23 @@ fn startup(
 
     println!("vrcubes startup done");
 
-    // xr_system.set_action_set(vec![oculus_profile]);
+    xr_system.set_action_set(vec![_oculus_profile]);
+}
+
+#[derive(Component, PartialEq, Eq)]
+enum Hand {
+    Left,
+    Right,
 }
 
 fn interaction(
-    action_set: Res<XrActionSet>,
+    mut c: Commands,
+    action_set: Option<Res<XrActionSet>>,
     mut tracking_source: ResMut<XrTrackingSource>,
     mut vibration_events: EventWriter<XrVibrationEvent>,
+    mut hands: Query<(&Hand, &mut Transform)>,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
     if tracking_source.reference_space_type() != XrReferenceSpaceType::Local {
         tracking_source.set_reference_space_type(XrReferenceSpaceType::Local);
@@ -152,6 +158,10 @@ fn interaction(
             "right_squeeze".to_owned(),
         ),
     ] {
+        let action_set = match action_set {
+            Some(ref s) => s,
+            None => continue,
+        };
         if action_set.button_just_pressed(&button) {
             // Short haptic click
             vibration_events.send(XrVibrationEvent {
@@ -181,11 +191,42 @@ fn interaction(
 
     let [left_pose, right_pose] = tracking_source.hands_pose();
     if let Some(pose) = left_pose {
-        let _left_pose = pose.to_mat4();
+        if hands.iter().find(|hand| hand.0 == &Hand::Left).is_none() {
+            c.spawn()
+                .insert_bundle(PbrBundle {
+                    mesh: meshes.add(Mesh::from(shape::Cube { size: 1.0 })),
+                    material: materials.add(Color::rgb(0.8, 0.7, 0.6).into()),
+                    transform: Transform::default().with_scale([0.1, 0.1, 0.1].into()),
+                    ..Default::default()
+                })
+                .insert(Hand::Left);
+        }
+        for mut hand in hands.iter_mut().filter(|hand| hand.0 == &Hand::Left) {
+            hand.1.translation = pose.transform.position;
+            hand.1.rotation = pose.transform.orientation;
+        }
     }
     if let Some(pose) = right_pose {
-        let _right_pose = pose.to_mat4();
+        dbg!(&pose);
+        if hands.iter().find(|hand| hand.0 == &Hand::Right).is_none() {
+            c.spawn()
+                .insert_bundle(PbrBundle {
+                    mesh: meshes.add(Mesh::from(shape::Cube { size: 1.0 })),
+                    material: materials.add(Color::rgb(0.8, 0.7, 0.6).into()),
+                    transform: Transform::default().with_scale([0.1, 0.1, 0.1].into()),
+                    ..Default::default()
+                })
+                .insert(Hand::Right);
+        }
+        for mut hand in hands.iter_mut().filter(|hand| hand.0 == &Hand::Right) {
+            let transform = Transform {
+                translation: pose.transform.position,
+                rotation: pose.transform.orientation,
+                scale: Vec3::ONE,
+            };
+            *hand.1 = transform;
+        }
     }
 
-    todo!() // Draw hands
+    // TODO: Draw hands
 }
