@@ -160,10 +160,15 @@ impl InteractionContext {
             let mut bindings = vec![];
 
             for (action_desc, path_string) in &desc.bindings {
+                dbg!(&path_string);
                 let path = instance.string_to_path(path_string).unwrap();
 
                 match action_desc.action_type {
-                    XrActionType::Button { touch } => {
+                    XrActionType::Button {
+                        touch,
+                        click,
+                        value,
+                    } => {
                         let actions = button_actions.get(&action_desc.name).unwrap();
 
                         if touch {
@@ -179,8 +184,12 @@ impl InteractionContext {
                         // polyfilled by the runtimes. The runtime may use a 0/1 value using the
                         // click path or infer the click using the value path and a hysteresis
                         // threshold.
-                        bindings.push(xr::Binding::new(&actions.click, path));
-                        bindings.push(xr::Binding::new(&actions.value, path));
+                        if click {
+                            bindings.push(xr::Binding::new(&actions.click, path));
+                        }
+                        if value {
+                            bindings.push(xr::Binding::new(&actions.value, path));
+                        }
                     }
                     XrActionType::Binary => {
                         let action = binary_actions.get(&action_desc.name).unwrap();
@@ -240,12 +249,14 @@ impl InteractionContext {
                 }
             }
 
+            dbg!(&desc.profile);
             let profile_path = instance.string_to_path(&desc.profile).unwrap();
-
             // Ignore error for unsupported profiles.
             instance
                 .suggest_interaction_profile_bindings(profile_path, &bindings)
+                .map_err(|e| dbg!(e))
                 .ok();
+            dbg!("suggested");
         }
 
         InteractionContext {

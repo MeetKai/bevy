@@ -22,8 +22,8 @@ use bevy_app::{App, AppExit, Plugin};
 use bevy_ecs::event::{Events, ManualEventReader};
 use bevy_xr::{
     presentation::{XrEnvironmentBlendMode, XrGraphicsContext, XrInteractionMode},
-    XrActionSet, XrProfiles, XrSessionMode, XrSystem, XrTrackingSource, XrVibrationEvent,
-    XrVisibilityState,
+    XrActionDescriptor, XrActionSet, XrActionType, XrProfileDescriptor, XrProfiles, XrSessionMode,
+    XrSystem, XrTrackingSource, XrVibrationEvent, XrVisibilityState,
 };
 use openxr::{self as xr, sys};
 use parking_lot::RwLock;
@@ -304,6 +304,56 @@ impl Plugin for OpenXrPlugin {
     }
 }
 
+fn setup_interaction(system: &mut XrSystem) {
+    let left_squeeze = XrActionDescriptor {
+        name: "left_squeeze".into(),
+        action_type: XrActionType::Scalar,
+    };
+    let right_squeeze = XrActionDescriptor {
+        name: "right_squeeze".into(),
+        action_type: XrActionType::Scalar,
+    };
+
+    let _oculus_profile = XrProfileDescriptor {
+        profile: OCULUS_TOUCH_PROFILE.into(),
+        bindings: vec![
+            (
+                XrActionDescriptor {
+                    name: "left_trigger".into(),
+                    action_type: XrActionType::Button {
+                        touch: true,
+                        click: false,
+                        value: true,
+                    },
+                },
+                "/user/hand/left/input/trigger".into(),
+            ),
+            (
+                XrActionDescriptor {
+                    name: "left_x".into(),
+                    action_type: XrActionType::Button {
+                        touch: true,
+                        click: true,
+                        value: false,
+                    },
+                },
+                "/user/hand/left/input/x".into(),
+            ),
+            // (
+            //     right_button.clone(),
+            //     "/user/hand/right/input/trigger".into(),
+            // ),
+            // (right_button, "/user/hand/right/input/a".into()),
+            // (left_squeeze, "/user/hand/left/input/squeeze".into()),
+            // (right_squeeze, "/user/hand/right/input/squeeze".into()),
+        ],
+        tracked: true,
+        has_haptics: false,
+    };
+
+    system.set_action_set(vec![_oculus_profile]);
+}
+
 // Currently, only the session loop is implemented. If the session is destroyed or fails to
 // create, the app will exit.
 // todo: Implement the instance loop when the the lifecycle API is implemented.
@@ -345,10 +395,12 @@ fn runner(mut app: App) {
         return;
     }
 
-    let xr_system = app.world.get_resource::<XrSystem>().unwrap();
+    let mut xr_system = app.world.get_resource_mut::<XrSystem>().unwrap();
+    setup_interaction(&mut xr_system);
 
     let mode = xr_system.selected_session_mode();
     let bindings = xr_system.action_set();
+    dbg!(bindings.iter().map(|b| &b.profile).collect::<Vec<_>>());
 
     let interaction_context = InteractionContext::new(&ctx.instance, bindings);
 
@@ -645,32 +697,35 @@ fn runner(mut app: App) {
         swapchains.right.release().unwrap();
 
         match &mut frame_stream {
-            FrameStream::Vulkan(frame_stream) => frame_stream
-                .end(
-                    frame_state.predicted_display_time,
-                    blend_mode,
-                    &[
-                        &xr::CompositionLayerProjection::new().space(&stage).views(&[
-                            xr::CompositionLayerProjectionView::new()
-                                .pose(views[0].pose)
-                                .fov(views[0].fov)
-                                .sub_image(
-                                    xr::SwapchainSubImage::new()
-                                        .swapchain(&swapchains.left.handle)
-                                        .image_rect(resolutions[0].xr()),
-                                ),
-                            xr::CompositionLayerProjectionView::new()
-                                .pose(views[1].pose)
-                                .fov(views[1].fov)
-                                .sub_image(
-                                    xr::SwapchainSubImage::new()
-                                        .swapchain(&swapchains.right.handle)
-                                        .image_rect(resolutions[1].xr()),
-                                ),
-                        ]),
-                    ],
-                )
-                .unwrap(),
+            FrameStream::Vulkan(frame_stream) => {
+                frame_stream
+                    .end(
+                        frame_state.predicted_display_time,
+                        blend_mode,
+                        &[
+                            &xr::CompositionLayerProjection::new().space(&stage).views(&[
+                                xr::CompositionLayerProjectionView::new()
+                                    .pose(views[0].pose)
+                                    .fov(views[0].fov)
+                                    .sub_image(
+                                        xr::SwapchainSubImage::new()
+                                            .swapchain(&swapchains.left.handle)
+                                            .image_rect(resolutions[0].xr()),
+                                    ),
+                                xr::CompositionLayerProjectionView::new()
+                                    .pose(views[1].pose)
+                                    .fov(views[1].fov)
+                                    .sub_image(
+                                        xr::SwapchainSubImage::new()
+                                            .swapchain(&swapchains.right.handle)
+                                            .image_rect(resolutions[1].xr()),
+                                    ),
+                            ]),
+                        ],
+                    )
+                    //  sometimes fails with ERR_INVALID_POSE on quest 2 after waking up
+                    .map_err(|e| dbg!(e));
+            }
             #[cfg(windows)]
             FrameStream::D3D11(frame_stream) => frame_stream
                 .end(frame_state.predicted_display_time, blend_mode, todo!())

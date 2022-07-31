@@ -218,6 +218,8 @@ pub enum XrActionType {
     /// The last segment of the path (`/click`, `/touch` or `/value`) must be omitted.
     Button {
         touch: bool,
+        click: bool,
+        value: bool,
     },
 
     Binary,

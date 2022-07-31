@@ -1,13 +1,11 @@
 use bevy::{
     app::AppExit,
-    log::{Level, LogSettings},
-    openxr::{camera::XrPawn, OCULUS_TOUCH_PROFILE},
+    openxr::camera::XrPawn,
     prelude::*,
     utils::Duration,
     xr::{
-        XrActionDescriptor, XrActionSet, XrActionType, XrHandType, XrProfileDescriptor,
-        XrReferenceSpaceType, XrSessionMode, XrSystem, XrTrackingSource, XrVibrationEvent,
-        XrVibrationEventType,
+        XrActionSet, XrHandType, XrReferenceSpaceType, XrSessionMode, XrSystem, XrTrackingSource,
+        XrVibrationEvent, XrVibrationEventType,
     },
     DefaultPlugins,
 };
@@ -23,7 +21,7 @@ fn main() {
         .add_startup_system(startup)
         .add_startup_system(init_camera_position)
         .add_system(interaction)
-        .add_system(dummy)
+        // .add_system(dummy)
         .run();
 }
 
@@ -64,23 +62,6 @@ fn startup(
         app_exit_events.send(AppExit)
     }
 
-    let left_button = XrActionDescriptor {
-        name: "left_button".into(),
-        action_type: XrActionType::Button { touch: false },
-    };
-    let right_button = XrActionDescriptor {
-        name: "right_button".into(),
-        action_type: XrActionType::Button { touch: false },
-    };
-    let left_squeeze = XrActionDescriptor {
-        name: "left_squeeze".into(),
-        action_type: XrActionType::Scalar,
-    };
-    let right_squeeze = XrActionDescriptor {
-        name: "right_squeeze".into(),
-        action_type: XrActionType::Scalar,
-    };
-
     c.spawn_bundle(PointLightBundle {
         point_light: PointLight {
             intensity: 1500.0,
@@ -105,26 +86,7 @@ fn startup(
     })
     .insert(CubeMarker);
 
-    let _oculus_profile = XrProfileDescriptor {
-        profile: OCULUS_TOUCH_PROFILE.into(),
-        bindings: vec![
-            (left_button.clone(), "/user/hand/left/input/trigger".into()),
-            (left_button, "/user/hand/left/input/x".into()),
-            (
-                right_button.clone(),
-                "/user/hand/right/input/trigger".into(),
-            ),
-            (right_button, "/user/hand/right/input/a".into()),
-            (left_squeeze, "/user/hand/left/input/squeeze".into()),
-            (right_squeeze, "/user/hand/right/input/squeeze".into()),
-        ],
-        tracked: true,
-        has_haptics: true,
-    };
-
     println!("vrcubes startup done");
-
-    xr_system.set_action_set(vec![_oculus_profile]);
 }
 
 #[derive(Component, PartialEq, Eq)]
@@ -138,13 +100,18 @@ fn interaction(
     action_set: Option<Res<XrActionSet>>,
     mut tracking_source: ResMut<XrTrackingSource>,
     mut vibration_events: EventWriter<XrVibrationEvent>,
-    mut hands: Query<(&Hand, &mut Transform)>,
+    mut hands: Query<(&Hand, &mut Transform, &GlobalTransform)>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
+    pawn: Query<Entity, With<XrPawn>>,
 ) {
-    if tracking_source.reference_space_type() != XrReferenceSpaceType::Local {
-        tracking_source.set_reference_space_type(XrReferenceSpaceType::Local);
+    if tracking_source.reference_space_type() != XrReferenceSpaceType::Stage {
+        tracking_source.set_reference_space_type(XrReferenceSpaceType::Stage);
     }
+    let pawn = match pawn.get_single() {
+        Ok(pawn) => pawn,
+        Err(_) => return,
+    };
 
     for (hand, button, squeeze) in [
         (
@@ -192,39 +159,58 @@ fn interaction(
     let [left_pose, right_pose] = tracking_source.hands_pose();
     if let Some(pose) = left_pose {
         if hands.iter().find(|hand| hand.0 == &Hand::Left).is_none() {
-            c.spawn()
-                .insert_bundle(PbrBundle {
+            let cube = c
+                .spawn_bundle(PbrBundle {
                     mesh: meshes.add(Mesh::from(shape::Cube { size: 1.0 })),
-                    material: materials.add(Color::rgb(0.8, 0.7, 0.6).into()),
+                    material: materials.add(Color::rgb(0.1, 0.1, 0.8).into()),
                     transform: Transform::default().with_scale([0.1, 0.1, 0.1].into()),
                     ..Default::default()
                 })
-                .insert(Hand::Left);
+                .id();
+            let hand = c
+                .spawn_bundle(TransformBundle::default())
+                .insert_bundle(VisibilityBundle::default())
+                .add_child(cube)
+                .insert(Hand::Left)
+                .id();
+            c.entity(pawn).add_child(hand);
+
+            dbg!("spawned left hand");
         }
         for mut hand in hands.iter_mut().filter(|hand| hand.0 == &Hand::Left) {
-            hand.1.translation = pose.transform.position;
-            hand.1.rotation = pose.transform.orientation;
-        }
-    }
-    if let Some(pose) = right_pose {
-        dbg!(&pose);
-        if hands.iter().find(|hand| hand.0 == &Hand::Right).is_none() {
-            c.spawn()
-                .insert_bundle(PbrBundle {
-                    mesh: meshes.add(Mesh::from(shape::Cube { size: 1.0 })),
-                    material: materials.add(Color::rgb(0.8, 0.7, 0.6).into()),
-                    transform: Transform::default().with_scale([0.1, 0.1, 0.1].into()),
-                    ..Default::default()
-                })
-                .insert(Hand::Right);
-        }
-        for mut hand in hands.iter_mut().filter(|hand| hand.0 == &Hand::Right) {
-            let transform = Transform {
+            *hand.1 = Transform {
                 translation: pose.transform.position,
                 rotation: pose.transform.orientation,
                 scale: Vec3::ONE,
             };
-            *hand.1 = transform;
+        }
+    }
+    if let Some(pose) = right_pose {
+        if hands.iter().find(|hand| hand.0 == &Hand::Right).is_none() {
+            let cube = c
+                .spawn_bundle(PbrBundle {
+                    mesh: meshes.add(Mesh::from(shape::Cube { size: 1.0 })),
+                    material: materials.add(Color::rgb(0.8, 0.1, 0.2).into()),
+                    transform: Transform::default().with_scale([0.1, 0.1, 0.1].into()),
+                    ..Default::default()
+                })
+                .id();
+            let hand = c
+                .spawn_bundle(TransformBundle::default())
+                .insert_bundle(VisibilityBundle::default())
+                .add_child(cube)
+                .insert(Hand::Right)
+                .id();
+            c.entity(pawn).add_child(hand);
+
+            dbg!("spawned right hand");
+        }
+        for mut hand in hands.iter_mut().filter(|hand| hand.0 == &Hand::Right) {
+            *hand.1 = Transform {
+                translation: pose.transform.position,
+                rotation: pose.transform.orientation,
+                scale: Vec3::ONE,
+            };
         }
     }
 

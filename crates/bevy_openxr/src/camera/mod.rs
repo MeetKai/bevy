@@ -9,6 +9,7 @@ use bevy_math::{Mat4, Quat, Vec3};
 use bevy_reflect::{Reflect, Uuid};
 use bevy_render::{
     camera::{Camera, CameraProjection, CameraRenderGraph, DepthCalculation, RenderTarget},
+    prelude::VisibilityBundle,
     primitives::Frustum,
     view::VisibleEntities,
 };
@@ -273,7 +274,8 @@ impl XrPawn {
             .insert(Eye::Right);
         })
         .insert(Self {})
-        .insert_bundle(TransformBundle::default());
+        .insert_bundle(TransformBundle::default())
+        .insert_bundle(VisibilityBundle::default());
     }
 }
 

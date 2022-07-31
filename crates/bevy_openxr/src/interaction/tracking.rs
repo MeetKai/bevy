@@ -39,12 +39,16 @@ pub fn predict_pose(
     reference: &OpenXrTrackingReference,
     prediction_time: xr::Time,
 ) -> Option<XrPose> {
+    // dbg!("relating...");
     let (location, velocity) = space.relate(&reference.space, prediction_time).ok()?;
     if !location.location_flags.contains(
         xr::SpaceLocationFlags::ORIENTATION_VALID | xr::SpaceLocationFlags::POSITION_VALID,
     ) {
+        // dbg!("not valid");
         return None;
     }
+
+    // dbg!("correcting");
 
     let linear_velocity = Some(velocity.linear_velocity.to_vec3());
     let angular_velocity = Some(velocity.angular_velocity.to_vec3());
