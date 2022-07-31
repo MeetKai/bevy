@@ -1581,3 +1581,6 @@ debug-assertions = true
 # wgpu-core = { path = "../wgpu/wgpu-core" }
 # wgpu = { path = "../wgpu/wgpu" }
 # wgpu-hal = { path = "../wgpu/wgpu-hal" }
+
+[patch.'https://github.com/ralith/openxrs']
+openxr = { path = "../openxrs/openxr" }

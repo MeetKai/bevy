@@ -79,7 +79,7 @@ impl Drop for OpenXrSession {
 
 #[derive(Debug)]
 pub enum OpenXrError {
-    #[cfg(any(target_os = "android"))]
+    #[cfg(target_os = "android")]
     Loader(xr::LoadError),
     InstanceCreation(sys::Result),
     UnsupportedFormFactor,
@@ -156,8 +156,8 @@ impl OpenXrContext {
     fn new(form_factor: OpenXrFormFactor) -> Result<Self, OpenXrError> {
         #[cfg(any(target_os = "android"))]
         let entry = unsafe { xr::Entry::load().map_err(OpenXrError::Loader)? };
-        #[cfg(not(any(target_os = "android")))]
-        let entry = unsafe { xr::Entry::load().unwrap() };
+        #[cfg(not(target_os = "android"))]
+        let entry = xr::Entry::linked();
 
         #[cfg(target_os = "android")]
         entry.initialize_android_loader().unwrap();
