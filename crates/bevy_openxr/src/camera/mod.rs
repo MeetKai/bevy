@@ -212,7 +212,6 @@ pub fn update_xrcamera_view(
     } else {
         right_rot.slerp(left_rot, 0.5)
     };
-    let mid_rot_inverse = mid_rot.inverse();
     xr_cam.single_mut().0.rotation = mid_rot;
 
     /*
@@ -237,9 +236,9 @@ pub fn update_xrcamera_view(
 
         projection.fov = view.fov;
 
-        transform.rotation = mid_rot_inverse * view.pose.orientation.to_quat();
+        transform.rotation = view.pose.orientation.to_quat();
         let pos = view.pose.position;
-        transform.translation = pos.to_vec3() - midpoint;
+        transform.translation = pos.to_vec3();
     }
 }
 
@@ -251,33 +250,27 @@ impl XrPawn {
         e.with_children(|pawn| {
             pawn.spawn()
                 .insert(XrCameras {})
-                .insert_bundle(TransformBundle::default())
-                .with_children(|parent| {
-                    let _left = parent
-                        .spawn_bundle(XRCameraBundle {
-                            camera: Camera {
-                                target: RenderTarget::TextureView(left_id),
-                                is_active: true,
-                                ..Default::default()
-                            },
-                            marker: XrCameraLeftMarker,
-                            ..Default::default()
-                        })
-                        .insert(Eye::Left)
-                        .id();
-                    let _right = parent
-                        .spawn_bundle(XRCameraBundle {
-                            camera: Camera {
-                                target: RenderTarget::TextureView(right_id),
-                                is_active: true,
-                                ..Default::default()
-                            },
-                            marker: XrCameraRightMarker,
-                            ..Default::default()
-                        })
-                        .insert(Eye::Right)
-                        .id();
-                });
+                .insert_bundle(TransformBundle::default());
+            pawn.spawn_bundle(XRCameraBundle {
+                camera: Camera {
+                    target: RenderTarget::TextureView(left_id),
+                    is_active: true,
+                    ..Default::default()
+                },
+                marker: XrCameraLeftMarker,
+                ..Default::default()
+            })
+            .insert(Eye::Left);
+            pawn.spawn_bundle(XRCameraBundle {
+                camera: Camera {
+                    target: RenderTarget::TextureView(right_id),
+                    is_active: true,
+                    ..Default::default()
+                },
+                marker: XrCameraRightMarker,
+                ..Default::default()
+            })
+            .insert(Eye::Right);
         })
         .insert(Self {})
         .insert_bundle(TransformBundle::default());
