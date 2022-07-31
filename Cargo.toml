@@ -1597,8 +1597,9 @@ debug-assertions = true
 # wgpu = { path = "../wgpu/wgpu" }
 # wgpu-hal = { path = "../wgpu/wgpu-hal" }
 
-[patch.'https://github.com/ralith/openxrs']
-openxr = { path = "../openxrs/openxr" }
+# uncomment this on macos until openxr sdk is updated with macos buildability
+# [patch.'https://github.com/ralith/openxrs']
+# openxr = { path = "../openxrs/openxr" }
 
 [profile.wasm-release]
 inherits = "release"
