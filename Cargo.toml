@@ -1589,9 +1589,6 @@ categories = [
 path = "/Users/kevin/.android/release.keystore"
 keystore_password = "android"
 
-[profile.release]
-debug-assertions = true
-
 [patch.crates-io]
 # wgpu-core = { path = "../wgpu/wgpu-core" }
 # wgpu = { path = "../wgpu/wgpu" }
