@@ -44,9 +44,14 @@ impl PluginGroup for DefaultPlugins {
             exit_on_all_closed: false,
             close_when_requested: false,
         })));
+
+        #[cfg(feature = "bevy_asset")]
         group.add(bevy_asset::AssetPlugin::default());
+
         #[cfg(feature = "debug_asset_server")]
         group.add(bevy_asset::debug_asset_server::DebugAssetServerPlugin::default());
+
+        #[cfg(feature = "bevy_scene")]
         group.add(bevy_scene::ScenePlugin::default());
 
         #[cfg(all(feature = "bevy_winit", not(feature = "bevy_xr")))]

@@ -112,6 +112,7 @@ pub struct Image {
     pub texture_descriptor: wgpu::TextureDescriptor<'static>,
     /// The [`ImageSampler`] to use during rendering.
     pub sampler_descriptor: ImageSampler,
+    pub texture_view_descriptor: Option<wgpu::TextureViewDescriptor<'static>>,
 }
 
 /// Used in [`Image`], this determines what image sampler to use when rendering. The default setting,
@@ -127,7 +128,20 @@ pub enum ImageSampler {
 }
 
 impl ImageSampler {
+    /// Returns an image sampler with `Linear` min and mag filters
+    #[inline]
+    pub fn linear() -> ImageSampler {
+        ImageSampler::Descriptor(Self::linear_descriptor())
+    }
+
+    /// Returns an image sampler with `nearest` min and mag filters
+    #[inline]
+    pub fn nearest() -> ImageSampler {
+        ImageSampler::Descriptor(Self::nearest_descriptor())
+    }
+
     /// Returns a sampler descriptor with `Linear` min and mag filters
+    #[inline]
     pub fn linear_descriptor() -> wgpu::SamplerDescriptor<'static> {
         wgpu::SamplerDescriptor {
             mag_filter: wgpu::FilterMode::Linear,
@@ -137,6 +151,7 @@ impl ImageSampler {
     }
 
     /// Returns a sampler descriptor with `Nearest` min and mag filters
+    #[inline]
     pub fn nearest_descriptor() -> wgpu::SamplerDescriptor<'static> {
         wgpu::SamplerDescriptor {
             mag_filter: wgpu::FilterMode::Nearest,
@@ -204,6 +219,7 @@ impl Default for Image {
                 usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
             },
             sampler_descriptor: ImageSampler::Default,
+            texture_view_descriptor: None,
         }
     }
 }
@@ -672,7 +688,13 @@ impl RenderAsset for Image {
             texture
         };
 
-        let texture_view = texture.create_view(&TextureViewDescriptor::default());
+        let texture_view = texture.create_view(
+            image
+                .texture_view_descriptor
+                .or_else(|| Some(TextureViewDescriptor::default()))
+                .as_ref()
+                .unwrap(),
+        );
         let size = Vec2::new(
             image.texture_descriptor.size.width as f32,
             image.texture_descriptor.size.height as f32,
