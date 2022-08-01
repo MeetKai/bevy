@@ -730,8 +730,9 @@ fn runner(mut app: App) {
                             ]),
                         ],
                     )
-                    //  sometimes fails with ERR_INVALID_POSE on quest 2 after waking up
-                    .map_err(|e| dbg!(e));
+                    .unwrap()
+                //  sometimes fails with ERR_INVALID_POSE on quest 2 after waking up
+                // .map_err(|e| dbg!(e));
             }
             #[cfg(windows)]
             FrameStream::D3D11(frame_stream) => frame_stream
