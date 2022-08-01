@@ -116,13 +116,13 @@ fn interaction(
     for (hand, button, squeeze) in [
         (
             XrHandType::Left,
-            "left_button".to_owned(),
-            "left_squeeze".to_owned(),
+            "left_x".to_owned(),
+            "left_trigger".to_owned(),
         ),
         (
             XrHandType::Right,
-            "right_button".to_owned(),
-            "right_squeeze".to_owned(),
+            "right_a".to_owned(),
+            "right_trigger".to_owned(),
         ),
     ] {
         let action_set = match action_set {

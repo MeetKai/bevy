@@ -355,7 +355,7 @@ fn setup_interaction(system: &mut XrSystem) {
                 ),
             ],
             tracked: true,
-            has_haptics: false,
+            has_haptics: true,
         };
         system.set_action_set(vec![oculus_profile]);
     }
