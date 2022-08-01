@@ -305,53 +305,60 @@ impl Plugin for OpenXrPlugin {
 }
 
 fn setup_interaction(system: &mut XrSystem) {
-    let left_squeeze = XrActionDescriptor {
-        name: "left_squeeze".into(),
-        action_type: XrActionType::Scalar,
-    };
-    let right_squeeze = XrActionDescriptor {
-        name: "right_squeeze".into(),
-        action_type: XrActionType::Scalar,
-    };
-
-    let _oculus_profile = XrProfileDescriptor {
-        profile: OCULUS_TOUCH_PROFILE.into(),
-        bindings: vec![
-            (
-                XrActionDescriptor {
-                    name: "left_trigger".into(),
-                    action_type: XrActionType::Button {
-                        touch: true,
-                        click: false,
-                        value: true,
+    if cfg!(target_os = "android") {
+        let oculus_profile = XrProfileDescriptor {
+            profile: OCULUS_TOUCH_PROFILE.into(),
+            bindings: vec![
+                (
+                    XrActionDescriptor {
+                        name: "left_trigger".into(),
+                        action_type: XrActionType::Button {
+                            touch: true,
+                            click: false,
+                            value: true,
+                        },
                     },
-                },
-                "/user/hand/left/input/trigger".into(),
-            ),
-            (
-                XrActionDescriptor {
-                    name: "left_x".into(),
-                    action_type: XrActionType::Button {
-                        touch: true,
-                        click: true,
-                        value: false,
+                    "/user/hand/left/input/trigger".into(),
+                ),
+                (
+                    XrActionDescriptor {
+                        name: "left_x".into(),
+                        action_type: XrActionType::Button {
+                            touch: true,
+                            click: true,
+                            value: false,
+                        },
                     },
-                },
-                "/user/hand/left/input/x".into(),
-            ),
-            // (
-            //     right_button.clone(),
-            //     "/user/hand/right/input/trigger".into(),
-            // ),
-            // (right_button, "/user/hand/right/input/a".into()),
-            // (left_squeeze, "/user/hand/left/input/squeeze".into()),
-            // (right_squeeze, "/user/hand/right/input/squeeze".into()),
-        ],
-        tracked: true,
-        has_haptics: false,
-    };
-
-    system.set_action_set(vec![_oculus_profile]);
+                    "/user/hand/left/input/x".into(),
+                ),
+                (
+                    XrActionDescriptor {
+                        name: "right_trigger".into(),
+                        action_type: XrActionType::Button {
+                            touch: true,
+                            click: false,
+                            value: true,
+                        },
+                    },
+                    "/user/hand/right/input/trigger".into(),
+                ),
+                (
+                    XrActionDescriptor {
+                        name: "right_a".into(),
+                        action_type: XrActionType::Button {
+                            touch: true,
+                            click: true,
+                            value: false,
+                        },
+                    },
+                    "/user/hand/right/input/a".into(),
+                ),
+            ],
+            tracked: true,
+            has_haptics: false,
+        };
+        system.set_action_set(vec![oculus_profile]);
+    }
 }
 
 // Currently, only the session loop is implemented. If the session is destroyed or fails to
