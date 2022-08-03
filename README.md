@@ -2,7 +2,7 @@ This is a work-in-progress branch of bevy to add openxr support. It is based mos
 
 ## Running on Oculus
 
-If running on Oculus, download [oculus sdk](https://developer.oculus.com/downloads/package/oculus-openxr-mobile-sdk/) and move corresponding library into `libs/`
+If running on Oculus, download [oculus sdk](https://developer.oculus.com/downloads/package/oculus-openxr-mobile-sdk/) and move corresponding library into `libs/`. Be careful! The directory structure of the oculus sdk has an extra folder. Arrange the library exactly like this:
 
 ```
 libs\arm64-v8a\libopenxr_loader.so
