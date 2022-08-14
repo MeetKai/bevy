@@ -51,11 +51,7 @@ pub fn create_swapchain(
         .enumerate_images()
         .unwrap()
         .into_iter()
-        .map(|color_image| {
-            
-
-            vk::Image::from_raw(color_image)
-        })
+        .map(|color_image| vk::Image::from_raw(color_image))
         .collect();
 
     let wgpu_resolution = wgpu::Extent3d {
@@ -82,8 +78,6 @@ pub fn create_swapchain(
                     Some(Box::new(())),
                 )
             };
-
-            
 
             unsafe {
                 device.create_texture_from_hal::<wgpu_hal::api::Vulkan>(

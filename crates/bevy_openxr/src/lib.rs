@@ -301,8 +301,7 @@ impl Plugin for OpenXrPlugin {
         app.insert_resource::<XrGraphicsContext>(graphics_context)
             .set_runner(runner);
 
-        //  XXX: multi-sampling with RenderTarget::TextureView doesn't work currently
-        app.insert_resource(Msaa { samples: 1 });
+        app.insert_resource(Msaa { samples: 2 });
     }
 }
 
