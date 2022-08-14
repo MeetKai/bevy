@@ -29,13 +29,13 @@ use openxr::{self as xr, sys};
 use parking_lot::RwLock;
 use presentation::GraphicsContextHandles;
 use serde::{Deserialize, Serialize};
-use xr::ActiveActionSet;
+use xr::{ActiveActionSet, ViewStateFlags};
 
 use std::{error::Error, ops::Deref, sync::Arc, thread, time::Duration};
 use wgpu::{TextureUsages, TextureViewDescriptor};
 use wgpu_hal::TextureUses;
 
-use crate::camera::{XRProjection, XrPawn};
+pub use crate::camera::XrPawn;
 
 // The form-factor is selected at plugin-creation-time and cannot be changed anymore for the entire
 // lifetime of the app. This will restrict which XrSessionMode can be selected.
@@ -454,7 +454,7 @@ fn runner(mut app: App) {
                     session.clone().into_any_graphics(),
                     SessionBackend::Vulkan(session),
                     frame_waiter,
-                    FrameStream::Vulkan(frame_stream),
+                    frame_stream,
                 )
             }
         };
@@ -640,20 +640,12 @@ fn runner(mut app: App) {
             .sync_actions(&[(ActiveActionSet::new(&interaction_context.action_set.lock()))])
             .unwrap();
 
-        match &mut frame_stream {
-            FrameStream::Vulkan(frame_stream) => frame_stream.begin().unwrap(),
-            #[cfg(all(windows, feature = "wip"))]
-            FrameStream::D3D11(frame_stream) => frame_stream.begin().unwrap(),
-        }
+        frame_stream.begin().unwrap();
 
         if !frame_state.should_render {
-            match &mut frame_stream {
-                FrameStream::Vulkan(frame_stream) => frame_stream
-                    .end(frame_state.predicted_display_time, blend_mode, &[])
-                    .unwrap(),
-                #[cfg(all(windows, feature = "wip"))]
-                FrameStream::D3D11(_) => todo!(),
-            }
+            frame_stream
+                .end(frame_state.predicted_display_time, blend_mode, &[])
+                .unwrap();
             continue;
         }
 
@@ -669,9 +661,10 @@ fn runner(mut app: App) {
             );
         }
 
-        let (_, views) = session
+        let (view_state_flags, views) = session
             .locate_views(view_type, frame_state.predicted_display_time, &stage)
             .unwrap();
+
         let view_cfgs = session
             .instance()
             .enumerate_view_configuration_views(ctx.system, view_type)
@@ -703,41 +696,39 @@ fn runner(mut app: App) {
         swapchains.left.release().unwrap();
         swapchains.right.release().unwrap();
 
-        match &mut frame_stream {
-            FrameStream::Vulkan(frame_stream) => {
-                frame_stream
-                    .end(
-                        frame_state.predicted_display_time,
-                        blend_mode,
-                        &[
-                            &xr::CompositionLayerProjection::new().space(&stage).views(&[
-                                xr::CompositionLayerProjectionView::new()
-                                    .pose(views[0].pose)
-                                    .fov(views[0].fov)
-                                    .sub_image(
-                                        xr::SwapchainSubImage::new()
-                                            .swapchain(&swapchains.left.handle)
-                                            .image_rect(resolutions[0].xr()),
-                                    ),
-                                xr::CompositionLayerProjectionView::new()
-                                    .pose(views[1].pose)
-                                    .fov(views[1].fov)
-                                    .sub_image(
-                                        xr::SwapchainSubImage::new()
-                                            .swapchain(&swapchains.right.handle)
-                                            .image_rect(resolutions[1].xr()),
-                                    ),
-                            ]),
-                        ],
-                    )
-                    .unwrap()
-                //  sometimes fails with ERR_INVALID_POSE on quest 2 after waking up
-                // .map_err(|e| dbg!(e));
-            }
-            #[cfg(all(windows, feature = "wip"))]
-            FrameStream::D3D11(frame_stream) => frame_stream
-                .end(frame_state.predicted_display_time, blend_mode, todo!())
-                .unwrap(),
+        if view_state_flags
+            .contains(ViewStateFlags::POSITION_VALID | ViewStateFlags::ORIENTATION_VALID)
+        {
+            frame_stream
+                .end(
+                    frame_state.predicted_display_time,
+                    blend_mode,
+                    &[
+                        &xr::CompositionLayerProjection::new().space(&stage).views(&[
+                            xr::CompositionLayerProjectionView::new()
+                                .pose(views[0].pose)
+                                .fov(views[0].fov)
+                                .sub_image(
+                                    xr::SwapchainSubImage::new()
+                                        .swapchain(&swapchains.left.handle)
+                                        .image_rect(resolutions[0].xr()),
+                                ),
+                            xr::CompositionLayerProjectionView::new()
+                                .pose(views[1].pose)
+                                .fov(views[1].fov)
+                                .sub_image(
+                                    xr::SwapchainSubImage::new()
+                                        .swapchain(&swapchains.right.handle)
+                                        .image_rect(resolutions[1].xr()),
+                                ),
+                        ]),
+                    ],
+                )
+                .unwrap()
+        } else {
+            frame_stream
+                .end(frame_state.predicted_display_time, blend_mode, &[])
+                .unwrap()
         }
 
         handle_output(

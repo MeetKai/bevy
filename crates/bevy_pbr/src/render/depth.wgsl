@@ -37,6 +37,7 @@ fn vertex_fn(vertex: Vertex) -> VertexOutput {
 #endif
 
     var vout: VertexOutput;
-    vout.clip_position = mesh_position_local_to_clip(model, vec4<f32>(vertex.position, 1.0));
+    let world = mesh_position_local_to_world(model, vec4<f32>(vertex.position, 1.0));
+    vout.clip_position = mesh_position_world_to_clip(world);
     return vout;
 }

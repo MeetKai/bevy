@@ -190,11 +190,13 @@ impl OpenXrTrackingContext {
             .map(|b| if b { Some(()) } else { None })
             .flatten()
             .map(|_| {
-                [
-                    session.create_hand_tracker(xr::Hand::LEFT).unwrap(),
-                    session.create_hand_tracker(xr::Hand::RIGHT).unwrap(),
-                ]
-            });
+                Some([
+                    //  simulator doesn't support creating tackers yet
+                    session.create_hand_tracker(xr::Hand::LEFT).ok()?,
+                    session.create_hand_tracker(xr::Hand::RIGHT).ok()?,
+                ])
+            })
+            .flatten();
 
         Self {
             reference: RwLock::new(reference),

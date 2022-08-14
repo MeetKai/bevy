@@ -1591,7 +1591,8 @@ pub fn queue_shadows(
 ) {
     if cfg!(target_os = "android") {
         // broken on oculus currently: https://github.com/kcking/quest2-shader-segfault
-        return;
+        // UPDATE: this fork currently works-around this issue by inlining the local->clip transform
+        // return;
     }
     for view_lights in &view_lights {
         let draw_shadow_mesh = shadow_draw_functions

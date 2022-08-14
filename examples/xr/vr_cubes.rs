@@ -14,7 +14,7 @@ use bevy::{
 fn main() {
     std::env::set_var("RUST_BACKTRACE", "1");
     // std::env::set_var("RUST_LOG", "warn");
-    std::env::set_var("VK_INSTANCE_LAYERS", "VK_LAYER_KHRONOS_validation");
+    // std::env::set_var("VK_INSTANCE_LAYERS", "VK_LAYER_KHRONOS_validation");
 
     App::new()
         .add_plugins(DefaultPlugins)
