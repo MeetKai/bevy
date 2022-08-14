@@ -1,4 +1,5 @@
-use openxr::{sys, Instance, Session};
+use bevy_log::info;
+use openxr::{sys, Instance, PerfSettingsDomainEXT, PerfSettingsLevelEXT, Session};
 
 use crate::{OpenXrContext, OpenXrSession};
 
@@ -26,4 +27,23 @@ pub fn increase_refresh_rate(instance: &Instance, session: sys::Session) {
             bevy_log::info!("requested refresh rate {}, result: {:?}", 90., res);
         }
     });
+}
+
+pub fn increase_performance_setting(instance: &Instance, session: sys::Session) {
+    unsafe {
+        instance.exts().ext_performance_settings.map(|perf| {
+            let res = (perf.perf_settings_set_performance_level)(
+                session,
+                PerfSettingsDomainEXT::CPU,
+                PerfSettingsLevelEXT::SUSTAINED_HIGH,
+            );
+            info!("cpu perf setting res: {:?}", res);
+            let res = (perf.perf_settings_set_performance_level)(
+                session,
+                PerfSettingsDomainEXT::GPU,
+                PerfSettingsLevelEXT::SUSTAINED_HIGH,
+            );
+            info!("gpu perf setting res: {:?}", res);
+        });
+    }
 }

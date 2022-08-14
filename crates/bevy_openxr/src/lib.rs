@@ -629,7 +629,14 @@ fn runner(mut app: App) {
                     })
                 }
                 xr::Event::MainSessionVisibilityChangedEXTX(_) => (), // unused
-                xr::Event::DisplayRefreshRateChangedFB(_) => (),      // shouldn't be needed
+                xr::Event::DisplayRefreshRateChangedFB(evt) => {
+                    //  BUG: on oculus quest2 this will fire even when a requested refresh rate fails
+                    bevy_log::info!(
+                        "refresh rate changed: {} -> {}",
+                        evt.from_display_refresh_rate(),
+                        evt.to_display_refresh_rate()
+                    );
+                }
                 _ => bevy_log::debug!("OpenXR: Unhandled event"),
             }
         }

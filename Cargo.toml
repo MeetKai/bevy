@@ -1569,6 +1569,9 @@ target_sdk_version = 26
 [[package.metadata.android.application.meta_data]]
 name = "com.samsung.android.vr.application.mode"
 value = "vr_only"
+[[package.metadata.android.application.meta_data]]
+name = "com.oculus.supportedDevices"
+value = "quest|quest2"
 
 [package.metadata.android.application.activity]
 theme = "@android:style/Theme.Black.NoTitleBar.Fullscreen"
