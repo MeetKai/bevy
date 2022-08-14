@@ -1,5 +1,6 @@
 pub mod camera;
 mod conversion;
+mod utils;
 
 use conversion::*;
 mod interaction;
@@ -139,6 +140,7 @@ fn selected_extensions(entry: &xr::Entry) -> xr::ExtensionSet {
     {
         exts.khr_d3d11_enable = available.khr_d3d11_enable;
     }
+    bevy_log::info!("selected xr extensions: \n{:#?}", exts);
 
     exts
 }
@@ -515,7 +517,9 @@ fn runner(mut app: App) {
     let right_id = Uuid::new_v4();
     XrPawn::spawn(app.world.spawn(), left_id, right_id);
 
+    let mut frame_count = 0usize;
     'session_loop: loop {
+        frame_count += 1;
         while let Some(event) = ctx.instance.poll_event(&mut event_storage).unwrap() {
             match event {
                 xr::Event::EventsLost(e) => {
@@ -633,6 +637,10 @@ fn runner(mut app: App) {
         if !running {
             thread::sleep(Duration::from_millis(200));
             continue;
+        }
+
+        if frame_count % 1000 == 0 {
+            utils::increase_refresh_rate(&ctx.instance, session.as_raw());
         }
 
         let frame_state = frame_waiter.wait().unwrap();

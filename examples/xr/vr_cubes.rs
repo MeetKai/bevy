@@ -13,7 +13,7 @@ use bevy::{
 #[bevy_main]
 fn main() {
     std::env::set_var("RUST_BACKTRACE", "1");
-    // std::env::set_var("RUST_LOG", "warn");
+    std::env::set_var("RUST_LOG", "bevy_openxr=info");
     // std::env::set_var("VK_INSTANCE_LAYERS", "VK_LAYER_KHRONOS_validation");
 
     App::new()
