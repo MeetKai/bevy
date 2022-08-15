@@ -301,7 +301,7 @@ impl Plugin for OpenXrPlugin {
         app.insert_resource::<XrGraphicsContext>(graphics_context)
             .set_runner(runner);
 
-        app.insert_resource(Msaa { samples: 2 });
+        app.insert_resource(Msaa { samples: 1 });
     }
 }
 
