@@ -42,28 +42,22 @@ thiserror = "1.0"
 parking_lot = "0.11"
 
 [target.'cfg(target_os = "linux")'.dependencies]
-openxr = { git = "https://github.com/Ralith/openxrs", default-features = false, features = [
+openxr = { version = "0.17.1", default-features = false, features = [
     "linked",
     "loaded",
 ] }
 
 [target.'cfg(target_os = "android")'.dependencies]
 # No official Khronos loader available for android, so load the one provided by the environment
-openxr = { git = "https://github.com/Ralith/openxrs", default-features = false, features = [
-    "loaded",
-] }
+openxr = { version = "0.17.1", default-features = false, features = ["loaded"] }
 
 
 [target.'cfg(not(any(target_os = "android", target_os = "macos", target_os = "linux")))'.dependencies]
-openxr = { git = "https://github.com/Ralith/openxrs", default-features = false, features = [
-    "static",
-] }
+openxr = { version = "0.17.1", default-features = false, features = ["static"] }
 
 [target.'cfg(not(target_os = "macos"))'.dependencies]
 wgpu = { version = "0.13.1" }
 
 [target.'cfg(target_os = "macos")'.dependencies]
-openxr = { git = "https://github.com/Ralith/openxrs", default-features = false, features = [
-    "static",
-] }
+openxr = { version = "0.17.1", default-features = false, features = ["static"] }
 wgpu = { version = "0.13.1", features = ["vulkan-portability"] }
