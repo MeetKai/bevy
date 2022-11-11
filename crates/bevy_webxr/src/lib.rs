@@ -2,62 +2,58 @@ use js_sys::Boolean;
 use wasm_bindgen::JsCast;
 use wasm_bindgen::JsValue;
 use wasm_bindgen_futures::JsFuture;
-use web_sys::XrSession;
 
-//From Web XR
-
-pub trait FromWebXr<T> {
-    fn from_web_xr(web_xr: T) -> Self;
+// WebXR <-> Bevy XR Conversion
+pub(crate) trait XrFrom<T> {
+    fn xr_from(_: T) -> Self;
 }
 
-pub trait IntoWebXr<T> {
-    fn into_web_xr(self) -> T;
+pub(crate) trait XrInto<T> {
+    fn xr_into(self) -> T;
 }
 
-impl<T, U> IntoWebXr<U> for T
+impl<T, U> XrInto<U> for T
 where
-    U: FromWebXr<T>,
+    U: XrFrom<T>,
 {
-    fn into_web_xr(self) -> U {
-        U::from_web_xr(self)
+    fn xr_into(self) -> U {
+        U::xr_from(self)
     }
 }
 
-impl FromWebXr<web_sys::XrSessionMode> for bevy_xr::XrSessionMode {
-    fn from_web_xr(mode: web_sys::XrSessionInit) -> Self {
-        //TODO: remove bevy_xr::XrSessionMode::InlineAr?
+// XR Conversion Impls
+
+impl XrFrom<web_sys::XrSessionMode> for bevy_xr::XrSessionMode {
+    fn xr_from(mode: web_sys::XrSessionMode) -> Self {
         match mode {
             web_sys::XrSessionMode::Inline => bevy_xr::XrSessionMode::InlineVR,
             web_sys::XrSessionMode::ImmersiveVr => bevy_xr::XrSessionMode::ImmersiveVR,
             web_sys::XrSessionMode::ImmersiveAr => bevy_xr::XrSessionMode::ImmersiveAR,
+            _ => panic!("Invalid XrSessionMode"),
         }
     }
 }
 
-//From Bevy XR
-
-pub trait FromBevyXr<T> {
-    fn from_bevy_xr(web_xr: T) -> Self;
-}
-
-pub trait IntoBevyXr<T> {
-    fn into_bevy_xr(self) -> T;
-}
-
-impl<T, U> IntoBevyXr<U> for T
-where
-    U: FromBevyXr<T>,
-{
-    fn into_bevy_xr(self) -> U {
-        U::from_bevy_xr(self)
+impl XrFrom<bevy_xr::XrSessionMode> for web_sys::XrSessionMode {
+    fn xr_from(web_xr: bevy_xr::XrSessionMode) -> Self {
+        match web_xr {
+            bevy_xr::XrSessionMode::ImmersiveVR => web_sys::XrSessionMode::ImmersiveVr,
+            bevy_xr::XrSessionMode::ImmersiveAR => web_sys::XrSessionMode::ImmersiveAr,
+            bevy_xr::XrSessionMode::InlineVR => web_sys::XrSessionMode::Inline,
+            //TODO: remove bevy_xr::XrSessionMode::InlineAr?
+            bevy_xr::XrSessionMode::InlineAR => web_sys::XrSessionMode::Inline,
+        }
     }
 }
 
-struct WebXrContext {}
+struct WebXrContext {
+    session: web_sys::XrSession,
+}
 
 impl WebXrContext {
+    // TODO: return result
     async fn get_context(mode: bevy_xr::XrSessionMode) -> Result<Self, JsValue> {
-        let mode = web_sys::XrSessionMode::from(mode);
+        let mode = mode.xr_into();
         let window = gloo_utils::window();
         let navigator = window.navigator();
         let xr_system = navigator.xr();
@@ -68,18 +64,13 @@ impl WebXrContext {
                 .dyn_into::<Boolean>()?
                 .value_of();
 
-        let session: XrSession = JsFuture::from(xr_system.request_session(mode))
-            .await?
-            .dyn_into::<XrSession>()?;
-        Ok(WebXrContext {})
-    }
-}
+        if !session_supported {
+            return Err("XrSessionMode not supported.".into());
+        }
 
-fn convert_session_mode(bevy_session_mode: bevy_xr::XrSessionMode) -> web_sys::XrSessionMode {
-    match bevy_session_mode {
-        bevy_xr::XrSessionMode::ImmersiveVR => web_sys::XrSessionMode::ImmersiveVr,
-        bevy_xr::XrSessionMode::ImmersiveAR => web_sys::XrSessionMode::ImmersiveAr,
-        bevy_xr::XrSessionMode::InlineVR => web_sys::XrSessionMode::Inline,
-        bevy_xr::XrSessionMode::InlineAR => web_sys::XrSessionMode::Inline,
+        let session = JsFuture::from(xr_system.request_session(mode))
+            .await?
+            .dyn_into::<web_sys::XrSession>()?;
+        Ok(WebXrContext { session })
     }
 }
