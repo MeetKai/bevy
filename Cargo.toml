@@ -37,6 +37,8 @@ default = [
   "vorbis",
   "x11",
   "filesystem_watcher",
+  # TODO: Remove
+  "xr"
 ]
 
 
