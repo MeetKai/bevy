@@ -8,3 +8,4 @@ Cargo.lock
 /.vscode
 /benches/target
 /libs
+.helix/languages.toml
