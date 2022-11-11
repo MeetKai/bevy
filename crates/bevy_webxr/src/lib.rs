@@ -1,99 +1,85 @@
-// use bevy_app::{AppBuilder, Plugin};
-// use bevy_utils::Duration;
-// use bevy_xr::XrMode;
-// use std::{cell::RefCell, rc::Rc, thread};
-// use web_sys::{Closure, XrSession, XrSessionMode};
+use js_sys::Boolean;
+use wasm_bindgen::JsCast;
+use wasm_bindgen::JsValue;
+use wasm_bindgen_futures::JsFuture;
+use web_sys::XrSession;
 
-// #[derive(Clone)]
-// struct WebXrContext {
-//     pub session: XrSession,
-//     pub mode: XrMode,
-// }
+//From Web XR
 
-// struct WebXrPlugin;
+pub trait FromWebXr<T> {
+    fn from_web_xr(web_xr: T) -> Self;
+}
 
-// impl Plugin for WebXrPlugin {
-//     fn build(&self, app: &mut AppBuilder) {
-//         let context = if let Some(context) = app.world().get_resource::<WebXrContext>() {
-//             context.clone()
-//         } else {
-//             let system = web_sys::window().unwrap().navigator().xr();
+pub trait IntoWebXr<T> {
+    fn into_web_xr(self) -> T;
+}
 
-//             // todo: this needs a better solution
-//             let vr_supported = Rc::new(RefCell::new(None));
-//             system
-//                 .is_session_supported(XrSessionMode::ImmersiveVr)
-//                 .then(Closure::wrap(Box::new({
-//                     let vr_supported = Rc::clone(&vr_supported);
-//                     move |res| {
-//                         *vr_supported.borrow_mut() = Some(res);
-//                     }
-//                 })));
-//             let ar_supported = Rc::new(RefCell::new(None));
-//             system
-//                 .is_session_supported(XrSessionMode::ImmersiveAr)
-//                 .then(Closure::wrap(Box::new({
-//                     let ar_supported = Rc::clone(&ar_supported);
-//                     move |res| {
-//                         *ar_supported.borrow_mut() = Some(res);
-//                     }
-//                 })));
-//             let vr_supported = loop {
-//                 if let Some(res) = vr_supported.borrow_mut().take() {
-//                     break res;
-//                 } else {
-//                     thread::sleep(Duration::from_millis(10));
-//                 }
-//             };
-//             let ar_supported = loop {
-//                 if let Some(res) = vr_supported.borrow_mut().take() {
-//                     break res;
-//                 } else {
-//                     thread::sleep(Duration::from_millis(10));
-//                 }
-//             };
+impl<T, U> IntoWebXr<U> for T
+where
+    U: FromWebXr<T>,
+{
+    fn into_web_xr(self) -> U {
+        U::from_web_xr(self)
+    }
+}
 
-//             let mode = app.world().get_resource::<XrMode>();
-//             let session_mode = match mode {
-//                 Some(XrMode::ImmersiveVR) | None if vr_supported => XrSessionMode::ImmersiveVr,
-//                 Some(XrMode::ImmersiveAR) if ar_supported => XrSessionMode::ImmersiveAr,
-//                 _ => XrSessionMode::Inline,
-//             };
+impl FromWebXr<web_sys::XrSessionMode> for bevy_xr::XrSessionMode {
+    fn from_web_xr(mode: web_sys::XrSessionInit) -> Self {
+        //TODO: remove bevy_xr::XrSessionMode::InlineAr?
+        match mode {
+            web_sys::XrSessionMode::Inline => bevy_xr::XrSessionMode::InlineVR,
+            web_sys::XrSessionMode::ImmersiveVr => bevy_xr::XrSessionMode::ImmersiveVR,
+            web_sys::XrSessionMode::ImmersiveAr => bevy_xr::XrSessionMode::ImmersiveAR,
+        }
+    }
+}
 
-//             let new_mode = match session_mode {
-//                 XrSessionMode::ImmersiveVr => XrMode::ImmersiveVR,
-//                 XrSessionMode::ImmersiveAr => XrMode::ImmersiveAR,
-//                 XrSessionMode::Inline => XrMode::InlineVR,
-//             };
+//From Bevy XR
 
-//             if let Some(mode) = mode {
-//                 if new_mode != *mode {
-//                     bevy_log::warn!("XrMode has been changed to {:?}", mode);
-//                 }
-//             }
+pub trait FromBevyXr<T> {
+    fn from_bevy_xr(web_xr: T) -> Self;
+}
 
-//             let session = Rc::new(RefCell::new(None));
-//             system
-//                 .request_session(session_mode)
-//                 .then(Closure::wrap(Box::new({
-//                     let session = Rc::clone(&session);
-//                     move |s: XrSession| {
-//                         *session.borrow_mut() = Some(s);
-//                     }
-//                 })));
-//             let session = loop {
-//                 if let Some(session) = session.borrow_mut().take() {
-//                     break session;
-//                 } else {
-//                     thread::sleep(Duration::from_millis(10));
-//                 }
-//             };
+pub trait IntoBevyXr<T> {
+    fn into_bevy_xr(self) -> T;
+}
 
-//             WebXrContext {
-//                 session,
-//                 mode: new_mode,
-//             };
-//         };
-//         app.insert_resource(context.mode).insert_resource(context);
-//     }
-// }
+impl<T, U> IntoBevyXr<U> for T
+where
+    U: FromBevyXr<T>,
+{
+    fn into_bevy_xr(self) -> U {
+        U::from_bevy_xr(self)
+    }
+}
+
+struct WebXrContext {}
+
+impl WebXrContext {
+    async fn get_context(mode: bevy_xr::XrSessionMode) -> Result<Self, JsValue> {
+        let mode = web_sys::XrSessionMode::from(mode);
+        let window = gloo_utils::window();
+        let navigator = window.navigator();
+        let xr_system = navigator.xr();
+
+        let session_supported =
+            JsFuture::from(xr_system.is_session_supported(web_sys::XrSessionMode::ImmersiveVr))
+                .await?
+                .dyn_into::<Boolean>()?
+                .value_of();
+
+        let session: XrSession = JsFuture::from(xr_system.request_session(mode))
+            .await?
+            .dyn_into::<XrSession>()?;
+        Ok(WebXrContext {})
+    }
+}
+
+fn convert_session_mode(bevy_session_mode: bevy_xr::XrSessionMode) -> web_sys::XrSessionMode {
+    match bevy_session_mode {
+        bevy_xr::XrSessionMode::ImmersiveVR => web_sys::XrSessionMode::ImmersiveVr,
+        bevy_xr::XrSessionMode::ImmersiveAR => web_sys::XrSessionMode::ImmersiveAr,
+        bevy_xr::XrSessionMode::InlineVR => web_sys::XrSessionMode::Inline,
+        bevy_xr::XrSessionMode::InlineAR => web_sys::XrSessionMode::Inline,
+    }
+}
