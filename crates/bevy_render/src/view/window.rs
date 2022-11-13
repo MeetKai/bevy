@@ -25,16 +25,23 @@ pub enum WindowSystem {
 
 impl Plugin for WindowRenderPlugin {
     fn build(&self, app: &mut App) {
+        let have_adapter = app.world.get_resource::<RenderAdapter>().is_some();
         if let Ok(render_app) = app.get_sub_app_mut(RenderApp) {
             render_app
                 .init_resource::<ExtractedWindows>()
                 .init_resource::<WindowSurfaces>()
                 .init_resource::<NonSendMarker>()
-                .add_system_to_stage(RenderStage::Extract, extract_windows)
-                .add_system_to_stage(
+                .add_system_to_stage(RenderStage::Extract, extract_windows);
+            //  HACK: in openxr we don't yet support a wgpu::Adapter (haven't
+            //  tried yet). It's not clear what an adapter would be in the
+            //  openxr API, but wgpu adapter impl may "just work" as long as the
+            //  same backend is selected
+            if have_adapter {
+                render_app.add_system_to_stage(
                     RenderStage::Prepare,
                     prepare_windows.label(WindowSystem::Prepare),
                 );
+            }
         }
     }
 }

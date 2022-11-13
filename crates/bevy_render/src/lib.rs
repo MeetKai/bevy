@@ -160,24 +160,29 @@ impl Plugin for RenderPlugin {
                 ..Default::default()
             };
 
-            let (device, queue, adapter_info, render_adapter) = match (
+            let (device, queue, adapter_info, adapter) = match (
                 app.world.get_resource::<renderer::RenderDevice>(),
                 app.world.get_resource::<renderer::RenderQueue>(),
                 app.world.get_resource::<renderer::RenderAdapterInfo>(),
-                app.world.get_resource::<renderer::RenderAdapter>(),
+                // app.world.get_resource::<renderer::RenderAdapter>(),
             ) {
-                (Some(dev), Some(queue), Some(adapter_info), Some(adapter)) => (
-                    dev.clone(),
-                    queue.clone(),
-                    adapter_info.clone(),
-                    adapter.clone(),
-                ),
-                _ => futures_lite::future::block_on(renderer::initialize_renderer(
-                    &instance,
-                    &options,
-                    &request_adapter_options,
-                )),
+                (Some(dev), Some(queue), Some(adapter_info)) => {
+                    (dev.clone(), queue.clone(), adapter_info.clone(), None)
+                }
+                _ => {
+                    let (dev, queue, adapter_info, adapter) =
+                        futures_lite::future::block_on(renderer::initialize_renderer(
+                            &instance,
+                            &options,
+                            &request_adapter_options,
+                        ));
+                    (dev, queue, adapter_info, Some(adapter))
+                }
             };
+            //  only use adapter on non-xr build
+            if let Some(ref adapter) = adapter {
+                app.insert_resource(adapter.clone());
+            }
             // let (device, queue, adapter_info) = futures_lite::future::block_on(
             //     renderer::initialize_renderer(&instance, &options, &request_adapter_options),
             // );
@@ -186,7 +191,6 @@ impl Plugin for RenderPlugin {
             app.insert_resource(device.clone())
                 .insert_resource(queue.clone())
                 .insert_resource(adapter_info.clone())
-                .insert_resource(render_adapter.clone())
                 .init_resource::<ScratchMainWorld>()
                 .register_type::<Frustum>()
                 .register_type::<CubemapFrusta>();
@@ -212,6 +216,10 @@ impl Plugin for RenderPlugin {
             // after access to the main world is removed
             // See also https://github.com/bevyengine/bevy/issues/5082
             extract_stage.set_apply_buffers(false);
+            //  only use adapter on non-xr build
+            if let Some(ref adapter) = adapter {
+                render_app.insert_resource(adapter.clone());
+            }
             render_app
                 .add_stage(RenderStage::Extract, extract_stage)
                 .add_stage(RenderStage::Prepare, SystemStage::parallel())
@@ -228,7 +236,6 @@ impl Plugin for RenderPlugin {
                 .insert_resource(RenderInstance(instance))
                 .insert_resource(device)
                 .insert_resource(queue)
-                .insert_resource(render_adapter)
                 .insert_resource(adapter_info)
                 .insert_resource(pipeline_cache)
                 .insert_resource(asset_server);

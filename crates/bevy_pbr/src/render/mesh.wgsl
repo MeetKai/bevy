@@ -32,7 +32,7 @@ struct VertexOutput {
 };
 
 @vertex
-fn vertex(vertex: Vertex) -> VertexOutput {
+fn vertex_fn(vertex: Vertex) -> VertexOutput {
     var vout: VertexOutput;
 
 #ifdef SKINNED
