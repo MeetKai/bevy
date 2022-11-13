@@ -1,14 +1,14 @@
 use bevy_core_pipeline::{core_3d, prelude::Camera3d};
 use bevy_ecs::{
     prelude::{Bundle, Component, ReflectComponent, Without},
-    system::{Query, Res},
+    system::{Query, Res, ResMut, Resource},
     world::EntityMut,
 };
 use bevy_hierarchy::BuildWorldChildren;
 use bevy_math::{Mat4, Quat, Vec3};
-use bevy_reflect::{Reflect, Uuid};
+use bevy_reflect::{std_traits::ReflectDefault, FromReflect, Reflect, Uuid};
 use bevy_render::{
-    camera::{Camera, CameraProjection, CameraRenderGraph, DepthCalculation, RenderTarget},
+    camera::{Camera, CameraProjection, CameraRenderGraph, RenderTarget},
     prelude::VisibilityBundle,
     primitives::Frustum,
     view::VisibleEntities,
@@ -54,8 +54,8 @@ impl<M: Component + Default> Default for XRCameraBundle<M> {
     }
 }
 
-#[derive(Debug, Clone, Component, Reflect)]
-#[reflect(Component)]
+#[derive(Debug, Clone, Component, Reflect, FromReflect)]
+#[reflect(Component, Default)]
 pub struct XRProjection {
     pub near: f32,
     pub far: f32,
@@ -187,20 +187,20 @@ impl CameraProjection for XRProjection {
 
     fn update(&mut self, _width: f32, _height: f32) {}
 
-    fn depth_calculation(&self) -> DepthCalculation {
-        DepthCalculation::Distance
-    }
-
     fn far(&self) -> f32 {
         self.far
     }
 }
 
+#[derive(Resource)]
+pub struct XrViews(pub Vec<View>);
+
 pub fn update_xrcamera_view(
     mut cam: Query<(&mut XRProjection, &mut Transform, &Eye)>,
     mut xr_cam: Query<(&mut Transform, &XrCameras), Without<Eye>>,
-    views: Res<Vec<View>>,
+    views: ResMut<XrViews>,
 ) {
+    let views = views.0;
     let midpoint = (views.get(0).unwrap().pose.position.to_vec3()
         + views.get(1).unwrap().pose.position.to_vec3())
         / 2.;
@@ -249,10 +249,8 @@ pub struct XrPawn {}
 impl XrPawn {
     pub fn spawn(mut e: EntityMut, left_id: Uuid, right_id: Uuid) {
         e.with_children(|pawn| {
-            pawn.spawn()
-                .insert(XrCameras {})
-                .insert_bundle(TransformBundle::default());
-            pawn.spawn_bundle(XRCameraBundle {
+            pawn.spawn(XrCameras {}).insert(TransformBundle::default());
+            pawn.spawn(XRCameraBundle {
                 camera: Camera {
                     target: RenderTarget::TextureView(left_id),
                     is_active: true,
@@ -262,7 +260,7 @@ impl XrPawn {
                 ..Default::default()
             })
             .insert(Eye::Left);
-            pawn.spawn_bundle(XRCameraBundle {
+            pawn.spawn(XRCameraBundle {
                 camera: Camera {
                     target: RenderTarget::TextureView(right_id),
                     is_active: true,
@@ -274,8 +272,8 @@ impl XrPawn {
             .insert(Eye::Right);
         })
         .insert(Self {})
-        .insert_bundle(TransformBundle::default())
-        .insert_bundle(VisibilityBundle::default());
+        .insert(TransformBundle::default())
+        .insert(VisibilityBundle::default());
     }
 }
 

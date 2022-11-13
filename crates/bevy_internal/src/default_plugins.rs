@@ -1,5 +1,5 @@
 use bevy_app::{PluginGroup, PluginGroupBuilder};
-use bevy_window::WindowSettings;
+use bevy_window::WindowDescriptor;
 
 /// This plugin group will add all the default plugins:
 /// * [`LogPlugin`](bevy_log::LogPlugin)
@@ -28,7 +28,7 @@ use bevy_window::WindowSettings;
 pub struct DefaultPlugins;
 
 impl PluginGroup for DefaultPlugins {
-    fn build(self) {
+    fn build(self) -> PluginGroupBuilder {
         let mut group = PluginGroupBuilder::start::<Self>()
             .add(bevy_log::LogPlugin::default())
             .add(bevy_core::CorePlugin::default())
@@ -38,13 +38,18 @@ impl PluginGroup for DefaultPlugins {
             .add(bevy_diagnostic::DiagnosticsPlugin::default())
             .add(bevy_input::InputPlugin::default());
         #[cfg(not(feature = "bevy_xr"))]
-        group = group.add(bevy_window::WindowPlugin::default());
+        {
+            group = group.add(bevy_window::WindowPlugin::default());
+        }
         #[cfg(feature = "bevy_xr")]
-        group = group.add(bevy_window::WindowPlugin(Some(WindowSettings {
-            add_primary_window: false,
-            exit_on_all_closed: false,
-            close_when_requested: false,
-        })));
+        {
+            group = group.add(bevy_window::WindowPlugin {
+                window: WindowDescriptor::default(),
+                add_primary_window: false,
+                exit_on_all_closed: false,
+                close_when_requested: false,
+            });
+        }
 
         #[cfg(feature = "bevy_asset")]
         {
@@ -68,7 +73,9 @@ impl PluginGroup for DefaultPlugins {
 
         //  needs to be before render plugin and after bevy_winit for now
         #[cfg(feature = "bevy_openxr")]
-        group.add(bevy_openxr::OpenXrPlugin::default());
+        {
+            group = group.add(bevy_openxr::OpenXrPlugin::default());
+        }
 
         #[cfg(feature = "bevy_render")]
         {
@@ -86,7 +93,9 @@ impl PluginGroup for DefaultPlugins {
 
         //  must be after core pipeline
         #[cfg(feature = "bevy_openxr")]
-        group.add(bevy_openxr::camera::xrcameraplugin::XrCameraPlugin::default());
+        {
+            group = group.add(bevy_openxr::camera::xrcameraplugin::XrCameraPlugin::default());
+        }
 
         #[cfg(feature = "bevy_sprite")]
         {
@@ -98,8 +107,7 @@ impl PluginGroup for DefaultPlugins {
             group = group.add(bevy_text::TextPlugin::default());
         }
 
-        #[cfg(not(feature = "bevy_xr"))]
-        #[cfg(feature = "bevy_ui")]
+        #[cfg(all(feature = "bevy_ui", not(feature = "bevy_xr")))]
         {
             group = group.add(bevy_ui::UiPlugin::default());
         }
@@ -127,7 +135,9 @@ impl PluginGroup for DefaultPlugins {
         }
 
         #[cfg(feature = "bevy_xr")]
-        group.add(bevy_xr::XrPlugin::default());
+        {
+            group.add(bevy_xr::XrPlugin::default());
+        }
 
         #[cfg(feature = "bevy_animation")]
         {

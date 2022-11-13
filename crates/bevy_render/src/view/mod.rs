@@ -276,15 +276,17 @@ fn prepare_view_targets(
     msaa: Res<Msaa>,
     render_device: Res<RenderDevice>,
     mut texture_cache: ResMut<TextureCache>,
-    cameras: Query<(Entity, &ExtractedCamera)>,
+    cameras: Query<(Entity, &ExtractedCamera, &ExtractedView)>,
     manual_texture_views: Res<ManualTextureViews>,
 ) {
     let mut textures = HashMap::default();
     for (entity, camera, view) in cameras.iter() {
         if let Some(target_size) = camera.physical_target_size {
             if let (Some(out_texture_view), Some(out_texture_format)) = (
-                camera.target.get_texture_view(&windows, &images, &manual_texture_views),
-                camera.target.get_texture_format(&windows, &images, &manual_texture_views),
+                camera
+                    .target
+                    .get_texture_view(&windows, &images, &manual_texture_views),
+                camera.target.get_texture_format(&windows, &images),
             ) {
                 let size = Extent3d {
                     width: target_size.x,

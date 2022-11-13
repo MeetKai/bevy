@@ -5,6 +5,7 @@ use crate::{
     prelude::Image,
     render_asset::RenderAssets,
     render_resource::TextureView,
+    texture::BevyDefault,
     view::{ExtractedView, ExtractedWindows, VisibleEntities},
     Extract,
 };
@@ -16,14 +17,14 @@ use bevy_ecs::{
     entity::Entity,
     event::EventReader,
     reflect::ReflectComponent,
-    system::{Commands, Query, Res},
+    system::{Commands, Query, Res, Resource},
 };
 use bevy_math::{Mat4, UVec2, Vec2, Vec3};
-use bevy_reflect::{prelude::*, Uuid};
-use bevy_render_macros::ExtractResource;
-use bevy_math::{Mat4, Ray, UVec2, UVec4, Vec2, Vec3};
+use bevy_math::{Ray, UVec4};
 use bevy_reflect::prelude::*;
 use bevy_reflect::FromReflect;
+use bevy_reflect::{prelude::*, Uuid};
+use bevy_render_macros::ExtractResource;
 use bevy_transform::components::GlobalTransform;
 use bevy_utils::{HashMap, HashSet};
 use bevy_window::{WindowCreated, WindowId, WindowResized, Windows};
@@ -311,7 +312,7 @@ impl CameraRenderGraph {
 
 /// The "target" that a [`Camera`] will render to. For example, this could be a [`Window`](bevy_window::Window)
 /// swapchain or an [`Image`].
-#[derive(Debug, Clone, Reflect, PartialEq, Eq, Hash, PartialOrd, Ord)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub enum RenderTarget {
     /// Window to which the camera's view is rendered.
     Window(WindowId),
@@ -327,8 +328,7 @@ impl Default for RenderTarget {
     }
 }
 
-#[derive(Default, Clone)]
-//#[derive(ExtractResource)]
+#[derive(Default, Clone, Resource)]
 pub struct ManualTextureViews(HashMap<Uuid, (TextureView, UVec2)>);
 
 impl Deref for ManualTextureViews {
@@ -376,6 +376,7 @@ impl RenderTarget {
             RenderTarget::Image(image_handle) => {
                 images.get(image_handle).map(|image| image.texture_format)
             }
+            RenderTarget::TextureView(_) => Some(TextureFormat::bevy_default()),
         }
     }
 

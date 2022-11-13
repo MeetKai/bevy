@@ -20,7 +20,10 @@ use bevy_utils::Uuid;
 pub use interaction::*;
 
 use bevy_app::{App, AppExit, Plugin};
-use bevy_ecs::event::{Events, ManualEventReader};
+use bevy_ecs::{
+    event::{Events, ManualEventReader},
+    system::Resource,
+};
 use bevy_xr::{
     presentation::{XrEnvironmentBlendMode, XrGraphicsContext, XrInteractionMode},
     XrActionDescriptor, XrActionSet, XrActionType, XrProfileDescriptor, XrProfiles, XrSessionMode,
@@ -145,6 +148,7 @@ fn selected_extensions(entry: &xr::Entry) -> xr::ExtensionSet {
     exts
 }
 
+#[derive(Resource)]
 pub struct OpenXrContext {
     instance: xr::Instance,
     form_factor: xr::FormFactor,

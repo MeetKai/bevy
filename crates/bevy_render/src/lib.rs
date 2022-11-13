@@ -160,15 +160,18 @@ impl Plugin for RenderPlugin {
                 ..Default::default()
             };
 
-            let (device, queue, adapter_info, adapter) = match (
+            let (device, queue, adapter_info, render_adapter) = match (
                 app.world.get_resource::<renderer::RenderDevice>(),
                 app.world.get_resource::<renderer::RenderQueue>(),
-                app.world.get_resource::<wgpu::AdapterInfo>(),
+                app.world.get_resource::<renderer::RenderAdapterInfo>(),
                 app.world.get_resource::<renderer::RenderAdapter>(),
             ) {
-                (Some(dev), Some(queue), Some(adapter_info), Some(adapter)) => {
-                    (dev.clone(), queue.clone(), adapter_info.clone(), adapter.clone())
-                }
+                (Some(dev), Some(queue), Some(adapter_info), Some(adapter)) => (
+                    dev.clone(),
+                    queue.clone(),
+                    adapter_info.clone(),
+                    adapter.clone(),
+                ),
                 _ => futures_lite::future::block_on(renderer::initialize_renderer(
                     &instance,
                     &options,

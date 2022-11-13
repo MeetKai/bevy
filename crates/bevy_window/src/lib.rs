@@ -23,10 +23,7 @@ pub mod prelude {
 }
 
 use bevy_app::prelude::*;
-use bevy_ecs::{
-    event::Events,
-    schedule::{ParallelSystemDescriptorCoercion, SystemLabel},
-};
+use bevy_ecs::event::Events;
 use bevy_ecs::schedule::{IntoSystemDescriptor, SystemLabel};
 
 impl Default for WindowPlugin {
@@ -34,9 +31,6 @@ impl Default for WindowPlugin {
         let is_openxr = cfg!(feature = "bevy_openxr");
         WindowPlugin {
             window: Default::default(),
-            add_primary_window: true,
-            exit_on_all_closed: true,
-            close_when_requested: true,
             add_primary_window: !is_openxr,
             exit_on_all_closed: !is_openxr,
             close_when_requested: !is_openxr,

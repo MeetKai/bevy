@@ -1,3 +1,4 @@
+use bevy_ecs::system::Resource;
 use bevy_math::{Mat4, Quat, Vec2, Vec3};
 use bevy_utils::Duration;
 use serde::{Deserialize, Serialize};
@@ -392,7 +393,7 @@ pub struct XrVibrationEvent {
 /// Note: in case skeletal hand tracking is active, the profiles still point to controller profiles.
 /// The correct 3D model to display can be decided depending on if skeletal hand tracking data is
 /// available or not.
-#[derive(Clone, PartialEq, Default, Debug, Serialize, Deserialize)]
+#[derive(Clone, PartialEq, Default, Debug, Serialize, Deserialize, Resource)]
 pub struct XrProfiles {
     pub left_hand: Option<String>,
     pub right_hand: Option<String>,
