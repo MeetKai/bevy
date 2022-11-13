@@ -14,6 +14,7 @@ use ash::vk::Handle;
 use bevy_render::{
     camera::{CameraPlugin, CameraProjection, CameraProjectionPlugin, ManualTextureViews},
     prelude::Msaa,
+    renderer,
 };
 
 use bevy_utils::Uuid;
@@ -40,6 +41,7 @@ use wgpu::{TextureUsages, TextureViewDescriptor};
 use wgpu_hal::TextureUses;
 
 pub use crate::camera::XrPawn;
+use crate::camera::XrViews;
 
 // The form-factor is selected at plugin-creation-time and cannot be changed anymore for the entire
 // lifetime of the app. This will restrict which XrSessionMode can be selected.
@@ -61,7 +63,7 @@ enum FrameStream {
     D3D11(xr::FrameStream<xr::D3D11>),
 }
 
-#[derive(Clone)]
+#[derive(Clone, Resource)]
 pub struct OpenXrSession {
     inner: Option<xr::Session<xr::AnyGraphics>>,
     _wgpu_device: Arc<wgpu::Device>,
@@ -147,6 +149,9 @@ fn selected_extensions(entry: &xr::Entry) -> xr::ExtensionSet {
 
     exts
 }
+
+#[derive(Resource)]
+pub struct XrInstanceRes(pub xr::Instance);
 
 #[derive(Resource)]
 pub struct OpenXrContext {
@@ -293,9 +298,9 @@ impl Plugin for OpenXrPlugin {
         let graphics_context = context.graphics_context.take().unwrap();
         println!("got graphics context");
 
-        let dev = bevy_render::renderer::RenderDevice::from(graphics_context.device.clone());
-        let queue = graphics_context.queue.clone();
-        let adapter_info = graphics_context.adapter_info.clone();
+        let dev = renderer::RenderDevice::from(graphics_context.device.clone());
+        let queue = renderer::RenderQueue(graphics_context.queue.clone());
+        let adapter_info = renderer::RenderAdapterInfo(graphics_context.adapter_info.clone());
 
         //override default render stuff
         app.insert_resource(dev)
@@ -448,7 +453,8 @@ fn setup_interaction(system: &mut XrSystem) {
 fn runner(mut app: App) {
     let ctx = app.world.remove_resource::<OpenXrContext>().unwrap();
 
-    app.world.insert_resource(ctx.instance.clone());
+    app.world
+        .insert_resource(XrInstanceRes(ctx.instance.clone()));
 
     let mut app_exit_event_reader = ManualEventReader::default();
 
@@ -571,7 +577,8 @@ fn runner(mut app: App) {
     };
 
     app.world.init_resource::<XrActionSet>();
-    app.world.insert_resource(tracking_context.clone());
+    app.world
+        .insert_resource(OpenXrTrackingContextRes(tracking_context.clone()));
     app.world
         .insert_resource(XrTrackingSource::new(Box::new(tracking_source)));
 
@@ -594,7 +601,7 @@ fn runner(mut app: App) {
 
     let left_id = Uuid::new_v4();
     let right_id = Uuid::new_v4();
-    XrPawn::spawn(app.world.spawn(), left_id, right_id);
+    XrPawn::spawn(app.world.spawn_empty(), left_id, right_id);
 
     let mut frame_count = 0usize;
     'session_loop: loop {
@@ -783,7 +790,7 @@ fn runner(mut app: App) {
         manual_texture_views.insert(left_id, (left_tex.into(), resolutions[0].bevy()));
         manual_texture_views.insert(right_id, (right_tex.into(), resolutions[1].bevy()));
 
-        app.world.insert_resource(views.clone());
+        app.world.insert_resource(XrViews(views.clone()));
 
         app.update();
 

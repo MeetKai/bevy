@@ -200,7 +200,7 @@ pub fn update_xrcamera_view(
     mut xr_cam: Query<(&mut Transform, &XrCameras), Without<Eye>>,
     views: ResMut<XrViews>,
 ) {
-    let views = views.0;
+    let views = &views.0;
     let midpoint = (views.get(0).unwrap().pose.position.to_vec3()
         + views.get(1).unwrap().pose.position.to_vec3())
         / 2.;

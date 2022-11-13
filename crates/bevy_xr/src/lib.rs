@@ -1,6 +1,7 @@
 pub mod interaction;
 pub mod presentation;
 
+use bevy_ecs::system::Resource;
 pub use interaction::*;
 pub use presentation::XrVisibilityState;
 
@@ -14,6 +15,7 @@ pub enum XrSessionMode {
     InlineAR,
 }
 
+#[derive(Resource)]
 pub struct XrSystem {
     available_session_modes: Vec<XrSessionMode>,
     session_mode: XrSessionMode,

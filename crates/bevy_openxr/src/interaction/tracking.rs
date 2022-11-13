@@ -3,6 +3,7 @@ use crate::{
     conversion::{to_quat, to_vec3},
     InteractionContext, OpenXrSession,
 };
+use bevy_ecs::system::Resource;
 use bevy_math::Vec3;
 use bevy_xr::{
     interaction::implementation::XrTrackingSourceBackend, XrHandType, XrJointPose, XrPose,
@@ -113,6 +114,7 @@ pub fn predict_hand_skeleton_pose(
     )
 }
 
+#[derive(Resource)]
 pub struct OpenXrTrackingReference {
     pub space_type: xr::ReferenceSpaceType,
     pub space: xr::Space,
@@ -120,6 +122,8 @@ pub struct OpenXrTrackingReference {
     pub previous_pose_offset: XrRigidTransform,
 }
 
+#[derive(Resource)]
+pub struct OpenXrTrackingContextRes(pub Arc<OpenXrTrackingContext>);
 pub struct OpenXrTrackingContext {
     pub reference: RwLock<OpenXrTrackingReference>,
     pub grip_spaces: [xr::Space; 2],

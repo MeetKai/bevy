@@ -129,6 +129,7 @@ pub mod implementation {
 /// Component used to poll tracking data. Tracking data is obtained "on-demand" to get the best
 /// precision possible. Poses are predicted for the next V-Sync. To obtain poses for an arbitrary
 /// point in time, `bevy_openxr` backend provides this functionality with OpenXrTrackingState.
+#[derive(Resource)]
 pub struct XrTrackingSource {
     inner: Box<dyn implementation::XrTrackingSourceBackend>,
 }
@@ -256,7 +257,7 @@ pub struct XrProfileDescriptor {
     pub has_haptics: bool,
 }
 
-#[derive(Default)]
+#[derive(Default, Resource)]
 pub struct XrActionSet {
     current_states: HashMap<String, XrActionState>,
     previous_states: HashMap<String, XrActionState>,

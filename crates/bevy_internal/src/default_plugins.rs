@@ -136,7 +136,7 @@ impl PluginGroup for DefaultPlugins {
 
         #[cfg(feature = "bevy_xr")]
         {
-            group.add(bevy_xr::XrPlugin::default());
+            group = group.add(bevy_xr::XrPlugin::default());
         }
 
         #[cfg(feature = "bevy_animation")]
