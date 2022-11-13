@@ -34,20 +34,23 @@ fn fragment_fn(frag_in: FragmentInput) -> @location(0) vec4<f32> {
 
     pbr_input.frag_coord = frag_in.frag_coord;
     pbr_input.world_position = frag_in.world_position;
-    pbr_input.world_normal = frag_in.world_normal;
+    pbr_input.world_normal = prepare_world_normal(
+        frag_in.world_normal,
+        (pbr_input.material.flags & STANDARD_MATERIAL_FLAGS_DOUBLE_SIDED_BIT) != 0u,
+        frag_in.is_front,
+    );
 
     pbr_input.is_orthographic = view.projection[3].w == 1.0;
 
-    pbr_input.N = prepare_normal(
+    pbr_input.N = apply_normal_mapping(
         pbr_input.material.flags,
-        frag_in.world_normal,
+        pbr_input.world_normal,
 #ifdef VERTEX_TANGENTS
 #ifdef STANDARDMATERIAL_NORMAL_MAP
         frag_in.world_tangent,
 #endif
 #endif
         frag_in.uv,
-        frag_in.is_front,
     );
     pbr_input.V = calculate_view(frag_in.world_position, pbr_input.is_orthographic);
 
