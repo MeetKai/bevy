@@ -24,7 +24,7 @@ members = [
 ]
 
 [features]
-default = ["animation", "bevy_asset", "bevy_audio", "bevy_gilrs", "bevy_scene", "bevy_winit", "render", "png", "hdr", "vorbis", "x11", "filesystem_watcher", "xr"]
+default = ["animation", "bevy_asset", "bevy_audio", "bevy_gilrs", "bevy_scene", "bevy_winit", "render", "png", "hdr", "vorbis", "x11", "filesystem_watcher" ]
 
 
 # Force dynamic linking, which improves iterative compile times
