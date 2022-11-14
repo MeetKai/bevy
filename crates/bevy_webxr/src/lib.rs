@@ -71,6 +71,7 @@ impl WebXrContext {
         let session = JsFuture::from(xr_system.request_session(mode))
             .await?
             .dyn_into::<web_sys::XrSession>()?;
+
         Ok(WebXrContext { session })
     }
 }

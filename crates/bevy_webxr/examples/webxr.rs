@@ -1,4 +1,3 @@
-use gloo_utils::window;
-use web_sys::XrSessionMode;
-
-fn main() {}
+fn main() {
+    console_error_panic_hook::set_once();
+}
