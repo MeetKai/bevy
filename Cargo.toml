@@ -34,6 +34,7 @@ dynamic = ["bevy_dylib"]
 render = ["bevy_internal/bevy_core_pipeline", "bevy_internal/bevy_pbr", "bevy_internal/bevy_gltf", "bevy_internal/bevy_render", "bevy_internal/bevy_sprite", "bevy_internal/bevy_text", "bevy_internal/bevy_ui"]
 
 xr = ["bevy_internal/bevy_xr", "bevy_openxr"]
+webxr = ["bevy_internal/bevy_xr","bevy_webxr"]
 
 # Optional bevy crates
 bevy_animation = ["bevy_internal/bevy_animation"]
