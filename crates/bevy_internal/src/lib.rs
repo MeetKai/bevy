@@ -179,6 +179,11 @@ pub mod openxr {
     pub use bevy_openxr::*;
 }
 
+#[cfg(feature = "bevy_webxr")]
+pub mod webxr {
+    pub use bevy_webxr::*;
+}
+
 #[cfg(feature = "bevy_dynamic_plugin")]
 pub mod dynamic_plugin {
     //! Dynamic linking of plugins
