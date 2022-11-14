@@ -77,6 +77,9 @@ impl PluginGroup for DefaultPlugins {
             group = group.add(bevy_openxr::OpenXrPlugin::default());
         }
 
+        // #[cfg(feature = "bevy_webxr")]
+        group.add(bevy_webxr::WebxrPlugin::default());
+
         #[cfg(feature = "bevy_render")]
         {
             group = group
