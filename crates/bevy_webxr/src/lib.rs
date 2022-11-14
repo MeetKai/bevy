@@ -1,3 +1,4 @@
+use bevy_app::Plugin;
 use js_sys::Boolean;
 use wasm_bindgen::JsCast;
 use wasm_bindgen::JsValue;
@@ -51,7 +52,7 @@ struct WebXrContext {
 }
 
 impl WebXrContext {
-    // TODO: return result
+    /// Get a WebXrContext, you must do this in an async function, so you have to call this before `bevy_app::App::run()` in an async main fn and insett it
     async fn get_context(mode: bevy_xr::XrSessionMode) -> Result<Self, JsValue> {
         let mode = mode.xr_into();
         let window = gloo_utils::window();
@@ -73,5 +74,16 @@ impl WebXrContext {
             .dyn_into::<web_sys::XrSession>()?;
 
         Ok(WebXrContext { session })
+    }
+}
+
+struct WebXrPlugin;
+
+impl Plugin for WebXrPlugin {
+    fn build(&self, app: &mut bevy_app::App) {
+        let webxr_context = app
+            .world
+            .get_non_send_resource_mut::<WebXrContext>()
+            .expect("Webxr context has to be inserted before `app.run()`");
     }
 }

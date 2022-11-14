@@ -51,6 +51,7 @@ bevy_text = ["bevy_internal/bevy_text"]
 bevy_ui = ["bevy_internal/bevy_ui"]
 bevy_winit = ["bevy_internal/bevy_winit"]
 bevy_openxr = ["bevy_internal/bevy_xr", "bevy_internal/bevy_openxr"]
+bevy_webxr = ["bevy_internal/bevy_xr", "bevy_internal/bevy_webxr"]
 
 # Tracing features
 trace_chrome = ["trace", "bevy_internal/trace_chrome"]
