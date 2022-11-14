@@ -77,6 +77,7 @@ impl WebXrContext {
     }
 }
 
+#[derive(Default)]
 pub struct WebXrPlugin;
 
 impl Plugin for WebXrPlugin {
