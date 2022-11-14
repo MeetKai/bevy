@@ -47,7 +47,7 @@ impl XrFrom<bevy_xr::XrSessionMode> for web_sys::XrSessionMode {
     }
 }
 
-struct WebXrContext {
+pub struct WebXrContext {
     session: web_sys::XrSession,
 }
 
@@ -77,7 +77,7 @@ impl WebXrContext {
     }
 }
 
-struct WebXrPlugin;
+pub struct WebXrPlugin;
 
 impl Plugin for WebXrPlugin {
     fn build(&self, app: &mut bevy_app::App) {
