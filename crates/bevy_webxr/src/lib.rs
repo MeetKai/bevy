@@ -53,7 +53,7 @@ pub struct WebXrContext {
 
 impl WebXrContext {
     /// Get a WebXrContext, you must do this in an async function, so you have to call this before `bevy_app::App::run()` in an async main fn and insett it
-    async fn get_context(mode: bevy_xr::XrSessionMode) -> Result<Self, JsValue> {
+    pub async fn get_context(mode: bevy_xr::XrSessionMode) -> Result<Self, JsValue> {
         let mode = mode.xr_into();
         let window = gloo_utils::window();
         let navigator = window.navigator();
