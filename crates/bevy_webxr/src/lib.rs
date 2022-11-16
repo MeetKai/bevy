@@ -1,5 +1,6 @@
 use bevy_app::App;
 use bevy_app::Plugin;
+use bevy_render::renderer::RenderDevice;
 use js_sys::Boolean;
 use raw_window_handle;
 use std::cell::RefCell;
@@ -99,23 +100,33 @@ impl Plugin for WebXrPlugin {
         bevy_log::info!("in webxr");
         app.set_runner(webxr_runner);
         // let window = gloo_utils::window();
-        // let webxr_context = app
-        //     .world
-        //     .get_non_send_resource_mut::<WebXrContext>()
-        //     .expect("Webxr context has to be inserted before `app.run()`");
-        // // let session: &web_sys::XrSession = webxr_context.session.as_ref();
-        // // let mut state = web_sys::XrRenderStateInit::new();
+        let webxr_context = app
+            .world
+            .get_non_send_resource_mut::<WebXrContext>()
+            .expect("Webxr context has to be inserted before `app.run()`");
+        let xr_session: &web_sys::XrSession =
+            webxr_context.as_ref().session.as_ref().borrow().as_ref();
 
-        // // let base_layer =
-        // //     web_sys::XrWebGlLayer::new_with_web_gl2_rendering_context(&webxr_context.session, &gl)
-        // //         .expect("can get base layer");
+        let base_layer = xr_session.render_state().base_layer().unwrap();
 
-        // // state.base_layer(Some(&base_layer));
+        let framebuffer: web_sys::WebGlFramebuffer =
+            js_sys::Reflect::get(&base_layer, &"framebuffer".into())
+                .unwrap()
+                .into();
 
-        // // session.update_render_state_with_state(&state);
-        // app.insert_resource(bevy_render::renderer::RenderDevice::from(
-        //     webxr_context.device.clone(),
-        // ));
+        let device = app
+            .world
+            .get_resource::<RenderDevice>()
+            .unwrap()
+            .wgpu_device();
+
+        let framebuffer_colour_attachment = create_view_from_device_framebuffer(
+            device,
+            framebuffer.clone(),
+            &base_layer,
+            wgpu::TextureFormat::Rgba8Unorm,
+            "device framebuffer (colour)",
+        );
     }
 }
 

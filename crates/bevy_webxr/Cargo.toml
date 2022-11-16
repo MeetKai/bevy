@@ -30,6 +30,7 @@ wasm-bindgen-futures = "0.4.33"
 wgpu = { version = "0.14.0", features = ["webgl"] }
 wgpu-hal = { version = "0.14.0", features = ["gles"] }
 raw-window-handle = "0.4.2"
+glow = { git = "https://github.com/grovesNL/glow/", rev = "c8a011fcd57a5c68cc917ed394baa484bdefc909" }
 web-sys = { version = "0.3", features = [
     "WebGlFramebuffer",
     "WebGl2RenderingContext",
@@ -69,6 +70,8 @@ web-sys = { version = "0.3", features = [
     "XrWebGlLayer",
     "XrWebGlLayerInit",
 ] }
+
+
 [patch.crates-io]
 wgpu = { git = "https://github.com/expenses/wgpu", rev = "d1a9ad7801022d2b733746e9d13152ce2705519b" }
 wgpu-hal = { git = "https://github.com/expenses/wgpu", rev = "d1a9ad7801022d2b733746e9d13152ce2705519b" }
