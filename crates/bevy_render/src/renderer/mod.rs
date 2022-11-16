@@ -163,6 +163,9 @@ pub async fn initialize_renderer(
         // err on the side of being conservative. We can't claim 'higher' limits that are supported
         // but we can constrain to 'lower' limits.
         limits = wgpu::Limits {
+            max_bindings_per_bind_group: limits
+                .max_bindings_per_bind_group
+                .min(constrained_limits.max_bindings_per_bind_group),
             max_texture_dimension_1d: limits
                 .max_texture_dimension_1d
                 .min(constrained_limits.max_texture_dimension_1d),
