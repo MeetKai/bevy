@@ -100,12 +100,12 @@ impl Plugin for WebXrPlugin {
         bevy_log::info!("in webxr");
         app.set_runner(webxr_runner);
         // let window = gloo_utils::window();
-        let webxr_context = app
+        let webxr_context: &WebXrContext = app
             .world
             .get_non_send_resource_mut::<WebXrContext>()
-            .expect("Webxr context has to be inserted before `app.run()`");
-        let xr_session: &web_sys::XrSession =
-            webxr_context.as_ref().session.as_ref().borrow().as_ref();
+            .expect("Webxr context has to be inserted before `app.run()`")
+            .as_ref();
+        let xr_session: &web_sys::XrSession = webxr_context.session.as_ref().borrow().borrow();
 
         let base_layer = xr_session.render_state().base_layer().unwrap();
 
@@ -136,13 +136,13 @@ fn webxr_runner(mut app: App) {
     let session = webxr_context.session.clone();
     type XrFrameHandler = Closure<dyn FnMut(f64, web_sys::XrFrame)>;
     let f: Rc<RefCell<Option<XrFrameHandler>>> = Rc::new(RefCell::new(None));
-    let g = f.clone();
+    let g: Rc<RefCell<Option<XrFrameHandler>>> = f.clone();
     let closure_session = session.clone();
-    *g.borrow_mut() = Some(Closure::new(move |_time: f64, _frame: web_sys::XrFrame| {
+    *g.borrow_mut() = Some(Closure::new(move |_time: f64, frame: web_sys::XrFrame| {
         //Tick Bevy World
         app.update();
 
-        let session = closure_session.borrow();
+        let session = frame.session();
 
         session.request_animation_frame(f.borrow().as_ref().unwrap().as_ref().unchecked_ref());
     }));
@@ -242,7 +242,7 @@ pub fn create_view_from_device_framebuffer(
     label: &'static str,
 ) -> Texture {
     Texture::new(unsafe {
-        device.create_texture_from_hal::<wgpu_hal::gles::Api>(
+        device.create_texture_from_hal::<wgpu_hal::api::Gles>(
             wgpu_hal::gles::Texture {
                 inner: wgpu_hal::gles::TextureInner::ExternalFramebuffer { inner: framebuffer },
                 mip_level_count: 1,
