@@ -1,5 +1,7 @@
 use bevy_app::App;
 use bevy_app::Plugin;
+use bevy_ecs::system::Resource;
+use bevy_log::info;
 use bevy_render::renderer::RenderDevice;
 use js_sys::Boolean;
 use raw_window_handle;
@@ -54,7 +56,7 @@ impl XrFrom<bevy_xr::XrSessionMode> for web_sys::XrSessionMode {
 }
 
 pub struct WebXrContext {
-    pub session: Rc<RefCell<web_sys::XrSession>>,
+    pub session: web_sys::XrSession,
     pub canvas: Canvas,
     // adapter: Adapter,
     // device: Arc<Device>,
@@ -64,16 +66,20 @@ pub struct WebXrContext {
 impl WebXrContext {
     /// Get a WebXrContext, you must do this in an async function, so you have to call this before `bevy_app::App::run()` in an async main fn and insett it
     pub async fn get_context(mode: bevy_xr::XrSessionMode) -> Result<Self, JsValue> {
+        gloo_console::log!("beginning of get context");
         let mode = mode.xr_into();
         let window = gloo_utils::window();
         let navigator = window.navigator();
         let xr_system = navigator.xr();
+        gloo_console::log!("pres esssion supported");
 
         let session_supported =
             JsFuture::from(xr_system.is_session_supported(web_sys::XrSessionMode::ImmersiveVr))
                 .await?
                 .dyn_into::<Boolean>()?
                 .value_of();
+
+        gloo_console::log!("post session supported");
 
         if !session_supported {
             return Err("XrSessionMode not supported.".into());
@@ -82,13 +88,12 @@ impl WebXrContext {
         let session = JsFuture::from(xr_system.request_session(mode))
             .await?
             .dyn_into::<web_sys::XrSession>()?;
+        gloo_console::log!("pre-canvas");
 
         let canvas = Canvas::default();
+        gloo_console::log!("psot canvas");
 
-        Ok(WebXrContext {
-            session: Rc::new(RefCell::new(session)),
-            canvas,
-        })
+        Ok(WebXrContext { session, canvas })
     }
 }
 
@@ -100,25 +105,29 @@ impl Plugin for WebXrPlugin {
         bevy_log::info!("in webxr");
         app.set_runner(webxr_runner);
         // let window = gloo_utils::window();
-        let webxr_context: &WebXrContext = app
+        let webxr_context = app
             .world
             .get_non_send_resource_mut::<WebXrContext>()
-            .expect("Webxr context has to be inserted before `app.run()`")
-            .as_ref();
-        let xr_session: &web_sys::XrSession = webxr_context.session.as_ref().borrow().borrow();
+            .expect("Webxr context has to be inserted before `app.run()`");
 
-        let base_layer = xr_session.render_state().base_layer().unwrap();
+        info!("post context");
+
+        let base_layer = webxr_context.session.render_state().base_layer().unwrap();
+
+        info!("post base layer");
 
         let framebuffer: web_sys::WebGlFramebuffer =
             js_sys::Reflect::get(&base_layer, &"framebuffer".into())
                 .unwrap()
                 .into();
 
+        info!("post framebuffer");
         let device = app
             .world
             .get_resource::<RenderDevice>()
             .unwrap()
             .wgpu_device();
+        info!("device");
 
         let framebuffer_colour_attachment = create_view_from_device_framebuffer(
             device,
@@ -127,6 +136,8 @@ impl Plugin for WebXrPlugin {
             wgpu::TextureFormat::Rgba8Unorm,
             "device framebuffer (colour)",
         );
+
+        app.world.insert_resource(framebuffer_colour_attachment);
     }
 }
 
@@ -147,9 +158,7 @@ fn webxr_runner(mut app: App) {
         session.request_animation_frame(f.borrow().as_ref().unwrap().as_ref().unchecked_ref());
     }));
 
-    session
-        .borrow()
-        .request_animation_frame(g.borrow().as_ref().unwrap().as_ref().unchecked_ref());
+    session.request_animation_frame(g.borrow().as_ref().unwrap().as_ref().unchecked_ref());
 }
 
 pub struct Canvas {
@@ -219,20 +228,20 @@ impl Default for Canvas {
     }
 }
 
+unsafe impl raw_window_handle::HasRawDisplayHandle for Canvas {
+    fn raw_display_handle(&self) -> raw_window_handle::RawDisplayHandle {
+        raw_window_handle::RawDisplayHandle::Web(raw_window_handle::WebDisplayHandle::empty())
+    }
+}
+
 unsafe impl raw_window_handle::HasRawWindowHandle for Canvas {
     fn raw_window_handle(&self) -> raw_window_handle::RawWindowHandle {
-        let mut web = raw_window_handle::WebHandle::empty();
+        let mut web = raw_window_handle::WebWindowHandle::empty();
         web.id = self.id;
 
         raw_window_handle::RawWindowHandle::Web(web)
     }
 }
-
-// unsafe impl raw_window_handle::HasRawDisplayHandle for Canvas {
-//     fn raw_display_handle(&self) -> raw_window_handle::RawDisplayHandle {
-//         raw_window_handle::RawDisplayHandle::Web(raw_window_handle::WebDisplayHandle::empty())
-//     }
-// }
 
 pub fn create_view_from_device_framebuffer(
     device: &wgpu::Device,
@@ -240,8 +249,8 @@ pub fn create_view_from_device_framebuffer(
     base_layer: &web_sys::XrWebGlLayer,
     format: wgpu::TextureFormat,
     label: &'static str,
-) -> Texture {
-    Texture::new(unsafe {
+) -> VrFramebufferTexture {
+    VrFramebufferTexture::new(unsafe {
         device.create_texture_from_hal::<wgpu_hal::api::Gles>(
             wgpu_hal::gles::Texture {
                 inner: wgpu_hal::gles::TextureInner::ExternalFramebuffer { inner: framebuffer },
@@ -278,12 +287,13 @@ pub fn create_view_from_device_framebuffer(
     })
 }
 
-pub struct Texture {
+#[derive(Resource)]
+pub struct VrFramebufferTexture {
     pub texture: wgpu::Texture,
     pub view: wgpu::TextureView,
 }
 
-impl Texture {
+impl VrFramebufferTexture {
     pub fn new(texture: wgpu::Texture) -> Self {
         Self {
             view: texture.create_view(&Default::default()),
