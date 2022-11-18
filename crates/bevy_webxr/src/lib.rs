@@ -1,5 +1,7 @@
 use bevy_app::App;
 use bevy_app::Plugin;
+use bevy_ecs::system::Commands;
+use bevy_ecs::system::Res;
 use bevy_ecs::system::Resource;
 use bevy_log::info;
 use bevy_render::renderer::RenderDevice;
@@ -105,40 +107,37 @@ impl Plugin for WebXrPlugin {
         bevy_log::info!("in webxr");
         app.set_runner(webxr_runner);
         // let window = gloo_utils::window();
-        let webxr_context = app
-            .world
-            .get_non_send_resource_mut::<WebXrContext>()
-            .expect("Webxr context has to be inserted before `app.run()`");
-
-        info!("post context");
-
-        let base_layer = webxr_context.session.render_state().base_layer().unwrap();
-
-        info!("post base layer");
-
-        let framebuffer: web_sys::WebGlFramebuffer =
-            js_sys::Reflect::get(&base_layer, &"framebuffer".into())
-                .unwrap()
-                .into();
-
-        info!("post framebuffer");
-        let device = app
-            .world
-            .get_resource::<RenderDevice>()
-            .unwrap()
-            .wgpu_device();
-        info!("device");
-
-        let framebuffer_colour_attachment = create_view_from_device_framebuffer(
-            device,
-            framebuffer.clone(),
-            &base_layer,
-            wgpu::TextureFormat::Rgba8Unorm,
-            "device framebuffer (colour)",
-        );
-
-        app.world.insert_resource(framebuffer_colour_attachment);
+        app.add_system(render_webxr);
     }
+}
+
+fn render_webxr(
+    mut commands: Commands,
+    frame: bevy_ecs::prelude::NonSend<web_sys::XrFrame>,
+    device: Res<RenderDevice>,
+) {
+    let base_layer = frame.session().render_state().base_layer().unwrap();
+
+    info!("post base layer");
+
+    let framebuffer: web_sys::WebGlFramebuffer =
+        js_sys::Reflect::get(&base_layer, &"framebuffer".into())
+            .unwrap()
+            .into();
+
+    info!("post framebuffer");
+    let device = device.wgpu_device();
+    info!("device");
+
+    let framebuffer_colour_attachment = create_view_from_device_framebuffer(
+        device,
+        framebuffer.clone(),
+        &base_layer,
+        wgpu::TextureFormat::Rgba8Unorm,
+        "device framebuffer (colour)",
+    );
+
+    commands.insert_resource(framebuffer_colour_attachment);
 }
 
 //TODO: get rid of rcrefcell and use frame.session
@@ -151,6 +150,7 @@ fn webxr_runner(mut app: App) {
     let closure_session = session.clone();
     *g.borrow_mut() = Some(Closure::new(move |_time: f64, frame: web_sys::XrFrame| {
         //Tick Bevy World
+        app.world.insert_non_send_resource(frame.clone());
         app.update();
 
         let session = frame.session();
