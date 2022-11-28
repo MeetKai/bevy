@@ -1,10 +1,20 @@
 use bevy_app::App;
 use bevy_app::Plugin;
+use bevy_ecs::schedule::IntoSystemDescriptor;
 use bevy_ecs::system::Commands;
 use bevy_ecs::system::Res;
+use bevy_ecs::system::ResMut;
 use bevy_ecs::system::Resource;
 use bevy_log::info;
+use bevy_math::UVec2;
+use bevy_math::Vec3;
+use bevy_render::camera::Camera;
+use bevy_render::camera::ManualTextureViews;
+use bevy_render::camera::RenderTarget;
+use bevy_render::prelude::Color;
 use bevy_render::renderer::RenderDevice;
+use bevy_utils::default;
+use bevy_utils::Uuid;
 use js_sys::Boolean;
 use raw_window_handle;
 use std::cell::RefCell;
@@ -13,6 +23,7 @@ use wasm_bindgen::prelude::Closure;
 use wasm_bindgen::JsCast;
 use wasm_bindgen::JsValue;
 use wasm_bindgen_futures::JsFuture;
+use web_sys::XrWebGlLayer;
 
 // WebXR <-> Bevy XR Conversion
 pub(crate) trait XrFrom<T> {
@@ -68,12 +79,12 @@ pub struct WebXrContext {
 impl WebXrContext {
     /// Get a WebXrContext, you must do this in an async function, so you have to call this before `bevy_app::App::run()` in an async main fn and insett it
     pub async fn get_context(mode: bevy_xr::XrSessionMode) -> Result<Self, JsValue> {
-        gloo_console::log!("beginning of get context");
+        // gloo_console::log!("beginning of get context");
         let mode = mode.xr_into();
         let window = gloo_utils::window();
         let navigator = window.navigator();
         let xr_system = navigator.xr();
-        gloo_console::log!("pres esssion supported");
+        // gloo_console::log!("pres esssion supported");
 
         let session_supported =
             JsFuture::from(xr_system.is_session_supported(web_sys::XrSessionMode::ImmersiveVr))
@@ -81,7 +92,7 @@ impl WebXrContext {
                 .dyn_into::<Boolean>()?
                 .value_of();
 
-        gloo_console::log!("post session supported");
+        // gloo_console::log!("post session supported");
 
         if !session_supported {
             return Err("XrSessionMode not supported.".into());
@@ -90,10 +101,10 @@ impl WebXrContext {
         let session = JsFuture::from(xr_system.request_session(mode))
             .await?
             .dyn_into::<web_sys::XrSession>()?;
-        gloo_console::log!("pre-canvas");
+        // gloo_console::log!("pre-canvas");
 
         let canvas = Canvas::default();
-        gloo_console::log!("psot canvas");
+        // gloo_console::log!("psot canvas");
 
         Ok(WebXrContext { session, canvas })
     }
@@ -106,41 +117,74 @@ impl Plugin for WebXrPlugin {
     fn build(&self, app: &mut bevy_app::App) {
         bevy_log::info!("in webxr");
         app.set_runner(webxr_runner);
-        // let window = gloo_utils::window();
-        app.add_system(render_webxr);
+        app.add_startup_system(setup);
+        app.add_system(render_webxr.label("render_webxr"));
     }
+}
+
+fn setup(mut commands: Commands) {
+    let left_id = Uuid::new_v4();
+    commands.insert_resource(FramebufferUuids { left: left_id });
+    commands.spawn((bevy_core_pipeline::core_3d::Camera3dBundle {
+        camera_3d: bevy_core_pipeline::core_3d::Camera3d {
+            // clear_color: bevy_core_pipeline::clear_color::ClearColorConfig::Custom(Color::BLUE),
+            ..default()
+        },
+        camera: Camera {
+            target: RenderTarget::TextureView(left_id),
+            ..default()
+        },
+        transform: bevy_transform::components::Transform::from_translation(Vec3::new(
+            0.0, 0.0, 15.0,
+        ))
+        .looking_at(Vec3::ZERO, Vec3::Y),
+        ..default()
+    },));
 }
 
 fn render_webxr(
     mut commands: Commands,
     frame: bevy_ecs::prelude::NonSend<web_sys::XrFrame>,
     device: Res<RenderDevice>,
+    queue: Res<bevy_render::renderer::RenderQueue>,
+    framebuffer_uuids: Res<FramebufferUuids>,
+    mut manual_tex_view: ResMut<ManualTextureViews>,
 ) {
-    let base_layer = frame.session().render_state().base_layer().unwrap();
+    let base_layer: XrWebGlLayer = frame.session().render_state().base_layer().unwrap();
 
-    info!("post base layer");
+    // info!("post base layer");
 
     let framebuffer: web_sys::WebGlFramebuffer =
         js_sys::Reflect::get(&base_layer, &"framebuffer".into())
             .unwrap()
             .into();
 
-    info!("post framebuffer");
+    // info!("post framebuffer");
     let device = device.wgpu_device();
-    info!("device");
-
-    let framebuffer_colour_attachment = create_view_from_device_framebuffer(
+    // info!("device");
+    let framebuffer_colour_attachment: VrFramebufferTexture = create_view_from_device_framebuffer(
         device,
         framebuffer.clone(),
         &base_layer,
-        wgpu::TextureFormat::Rgba8Unorm,
+        wgpu::TextureFormat::Rgba8UnormSrgb,
         "device framebuffer (colour)",
     );
-
-    commands.insert_resource(framebuffer_colour_attachment);
+    let left_id = framebuffer_uuids.left;
+    let resolution = UVec2::new(
+        base_layer.framebuffer_width(),
+        base_layer.framebuffer_height(),
+    );
+    manual_tex_view.insert(
+        left_id,
+        (framebuffer_colour_attachment.view.into(), resolution),
+    );
 }
 
-//TODO: get rid of rcrefcell and use frame.session
+#[derive(Resource)]
+pub struct FramebufferUuids {
+    pub left: Uuid,
+}
+
 fn webxr_runner(mut app: App) {
     let webxr_context = app.world.get_non_send_resource::<WebXrContext>().unwrap();
     let session = webxr_context.session.clone();
