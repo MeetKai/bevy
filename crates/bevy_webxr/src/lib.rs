@@ -1,5 +1,6 @@
 use bevy_app::App;
 use bevy_app::Plugin;
+use bevy_ecs::prelude::Component;
 use bevy_ecs::schedule::IntoSystemDescriptor;
 use bevy_ecs::system::Commands;
 use bevy_ecs::system::Res;
@@ -11,6 +12,7 @@ use bevy_math::Vec3;
 use bevy_render::camera::Camera;
 use bevy_render::camera::ManualTextureViews;
 use bevy_render::camera::RenderTarget;
+use bevy_render::camera::Viewport;
 use bevy_render::prelude::Color;
 use bevy_render::renderer::RenderDevice;
 use bevy_utils::default;
@@ -122,16 +124,57 @@ impl Plugin for WebXrPlugin {
     }
 }
 
-fn setup(mut commands: Commands) {
-    let left_id = Uuid::new_v4();
-    commands.insert_resource(FramebufferUuids { left: left_id });
+#[derive(Component)]
+struct LeftCamera;
+
+#[derive(Component)]
+struct RightCamera;
+
+fn setup(mut commands: Commands, frame: bevy_ecs::prelude::NonSend<web_sys::XrFrame>) {
+    let base_layer: XrWebGlLayer = frame.session().render_state().base_layer().unwrap();
+    let resolution = UVec2::new(
+        base_layer.framebuffer_width(),
+        base_layer.framebuffer_height(),
+    );
+    let physical_size = UVec2::new(resolution.x / 2, resolution.y);
+    let left_viewport = Viewport {
+        physical_position: UVec2::ZERO,
+        physical_size,
+        ..default()
+    };
+    let right_viewport = Viewport {
+        physical_position: UVec2::new(resolution.x / 2, 0),
+        physical_size,
+        ..default()
+    };
+
+    let id = Uuid::new_v4();
+    commands.insert_resource(FramebufferUuids { left: id });
     commands.spawn((bevy_core_pipeline::core_3d::Camera3dBundle {
         camera_3d: bevy_core_pipeline::core_3d::Camera3d {
-            // clear_color: bevy_core_pipeline::clear_color::ClearColorConfig::Custom(Color::BLUE),
+            // clear_color: bevy_core_pipeline::clear_color::ClearColorConfig::Custom(Color::GREEN),
             ..default()
         },
         camera: Camera {
-            target: RenderTarget::TextureView(left_id),
+            target: RenderTarget::TextureView(id),
+            viewport: Some(left_viewport),
+            ..default()
+        },
+        transform: bevy_transform::components::Transform::from_translation(Vec3::new(
+            0.0, 0.0, 15.0,
+        ))
+        .looking_at(Vec3::ZERO, Vec3::Y),
+        ..default()
+    },));
+    commands.spawn((bevy_core_pipeline::core_3d::Camera3dBundle {
+        camera_3d: bevy_core_pipeline::core_3d::Camera3d {
+            clear_color: bevy_core_pipeline::clear_color::ClearColorConfig::None,
+            ..default()
+        },
+        camera: Camera {
+            target: RenderTarget::TextureView(id),
+            priority: 1,
+            viewport: Some(right_viewport),
             ..default()
         },
         transform: bevy_transform::components::Transform::from_translation(Vec3::new(
