@@ -1,3 +1,4 @@
+
 use bevy_app::{App, Plugin, StartupStage};
 use bevy_ecs::prelude::{Component, World};
 use bevy_ecs::{
@@ -102,7 +103,6 @@ pub struct WebXrPlugin;
 
 impl Plugin for WebXrPlugin {
     fn build(&self, app: &mut bevy_app::App) {
-        bevy_log::info!("in webxr");
         app.set_runner(webxr_runner);
         setup(&mut app.world);
         app.add_system(update_manual_texture_views.label("render_webxr"));

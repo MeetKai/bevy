@@ -1,7 +1,8 @@
 [package]
 name = "bevy_xr"
 version = "0.9.0"
-edition = "2018"
+edition = "2021"
+
 authors = [
     "Bevy Contributors <bevyengine@gmail.com>",
     "Carter Anderson <mcanders1@gmail.com>",
