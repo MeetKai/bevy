@@ -5,7 +5,7 @@ use std::hash::Hash;
 use bevy_utils::{Entry, HashMap};
 
 use crate::utility::NonGenericTypeInfoCell;
-use crate::{DynamicInfo, Reflect, ReflectMut, ReflectRef, TypeInfo, Typed};
+use crate::{DynamicInfo, Reflect, ReflectMut, ReflectOwned, ReflectRef, TypeInfo, Typed};
 
 /// An ordered mapping between [`Reflect`] values.
 ///
@@ -42,6 +42,9 @@ pub trait Map: Reflect {
     /// Returns an iterator over the key-value pairs of the map.
     fn iter(&self) -> MapIter;
 
+    /// Drain the key-value pairs of this map to get a vector of owned values.
+    fn drain(self: Box<Self>) -> Vec<(Box<dyn Reflect>, Box<dyn Reflect>)>;
+
     /// Clones the map, producing a [`DynamicMap`].
     fn clone_dynamic(&self) -> DynamicMap;
 
@@ -65,6 +68,8 @@ pub struct MapInfo {
     key_type_id: TypeId,
     value_type_name: &'static str,
     value_type_id: TypeId,
+    #[cfg(feature = "documentation")]
+    docs: Option<&'static str>,
 }
 
 impl MapInfo {
@@ -77,7 +82,15 @@ impl MapInfo {
             key_type_id: TypeId::of::<TKey>(),
             value_type_name: std::any::type_name::<TValue>(),
             value_type_id: TypeId::of::<TValue>(),
+            #[cfg(feature = "documentation")]
+            docs: None,
         }
+    }
+
+    /// Sets the docstring for this map.
+    #[cfg(feature = "documentation")]
+    pub fn with_docs(self, docs: Option<&'static str>) -> Self {
+        Self { docs, ..self }
     }
 
     /// The [type name] of the map.
@@ -129,6 +142,12 @@ impl MapInfo {
     /// Check if the given type matches the value type.
     pub fn value_is<T: Any>(&self) -> bool {
         TypeId::of::<T>() == self.value_type_id
+    }
+
+    /// The docstring of this map, if any.
+    #[cfg(feature = "documentation")]
+    pub fn docs(&self) -> Option<&'static str> {
+        self.docs
     }
 }
 
@@ -226,6 +245,10 @@ impl Map for DynamicMap {
             }
         }
     }
+
+    fn drain(self: Box<Self>) -> Vec<(Box<dyn Reflect>, Box<dyn Reflect>)> {
+        self.values
+    }
 }
 
 impl Reflect for DynamicMap {
@@ -247,6 +270,11 @@ impl Reflect for DynamicMap {
     }
 
     fn as_any_mut(&mut self) -> &mut dyn Any {
+        self
+    }
+
+    #[inline]
+    fn into_reflect(self: Box<Self>) -> Box<dyn Reflect> {
         self
     }
 
@@ -275,6 +303,10 @@ impl Reflect for DynamicMap {
 
     fn reflect_mut(&mut self) -> ReflectMut {
         ReflectMut::Map(self)
+    }
+
+    fn reflect_owned(self: Box<Self>) -> ReflectOwned {
+        ReflectOwned::Map(self)
     }
 
     fn clone_value(&self) -> Box<dyn Reflect> {
@@ -348,9 +380,7 @@ impl<'a> ExactSizeIterator for MapIter<'a> {}
 /// Returns [`None`] if the comparison couldn't even be performed.
 #[inline]
 pub fn map_partial_eq<M: Map>(a: &M, b: &dyn Reflect) -> Option<bool> {
-    let map = if let ReflectRef::Map(map) = b.reflect_ref() {
-        map
-    } else {
+    let ReflectRef::Map(map) = b.reflect_ref() else {
         return Some(false);
     };
 

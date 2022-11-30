@@ -1,3 +1,4 @@
+use bevy_ecs::system::Resource;
 use bevy_math::{Mat4, Quat, Vec2, Vec3};
 use bevy_utils::Duration;
 use serde::{Deserialize, Serialize};
@@ -128,6 +129,7 @@ pub mod implementation {
 /// Component used to poll tracking data. Tracking data is obtained "on-demand" to get the best
 /// precision possible. Poses are predicted for the next V-Sync. To obtain poses for an arbitrary
 /// point in time, `bevy_openxr` backend provides this functionality with OpenXrTrackingState.
+#[derive(Resource)]
 pub struct XrTrackingSource {
     inner: Box<dyn implementation::XrTrackingSourceBackend>,
 }
@@ -255,7 +257,7 @@ pub struct XrProfileDescriptor {
     pub has_haptics: bool,
 }
 
-#[derive(Default)]
+#[derive(Default, Resource)]
 pub struct XrActionSet {
     current_states: HashMap<String, XrActionState>,
     previous_states: HashMap<String, XrActionState>,
@@ -392,7 +394,7 @@ pub struct XrVibrationEvent {
 /// Note: in case skeletal hand tracking is active, the profiles still point to controller profiles.
 /// The correct 3D model to display can be decided depending on if skeletal hand tracking data is
 /// available or not.
-#[derive(Clone, PartialEq, Default, Debug, Serialize, Deserialize)]
+#[derive(Clone, PartialEq, Default, Debug, Serialize, Deserialize, Resource)]
 pub struct XrProfiles {
     pub left_hand: Option<String>,
     pub right_hand: Option<String>,

@@ -1,3 +1,11 @@
+bevy_webxr Fork
+
+## Running on WebXR
+
+An example of using the webxr features is available at [webxr-testing](https://github.com/dekuraan/webxr-testing)
+
+## OpenXR
+
 This is a work-in-progress branch of bevy to add openxr support. It is based mostly off of [zarik5's work](https://github.com/zarik5/bevy). The goal is to support both Oculus and PCVR.
 
 ## Running on Oculus
@@ -41,7 +49,7 @@ This branch has 0.8-dev as of ~7/22/2022 rebased in.
 # [![Bevy](assets/branding/bevy_logo_light_dark_and_dimmed.svg)](https://bevyengine.org)
 
 [![Crates.io](https://img.shields.io/crates/v/bevy.svg)](https://crates.io/crates/bevy)
-[![MIT/Apache 2.0](https://img.shields.io/badge/license-MIT%2FApache-blue.svg)](./LICENSE)
+[![MIT/Apache 2.0](https://img.shields.io/badge/license-MIT%2FApache-blue.svg)](https://github.com/bevyengine/bevy#license)
 [![Crates.io](https://img.shields.io/crates/d/bevy.svg)](https://crates.io/crates/bevy)
 [![Rust](https://github.com/bevyengine/bevy/workflows/CI/badge.svg)](https://github.com/bevyengine/bevy/actions)
 ![iOS cron CI](https://github.com/bevyengine/bevy/workflows/iOS%20cron%20CI/badge.svg)

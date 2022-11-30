@@ -5,6 +5,7 @@ pub mod color;
 pub mod extract_component;
 mod extract_param;
 pub mod extract_resource;
+pub mod globals;
 pub mod mesh;
 pub mod primitives;
 pub mod rangefinder;
@@ -18,22 +19,26 @@ mod spatial_bundle;
 pub mod texture;
 pub mod view;
 
+use bevy_core::FrameCount;
+use bevy_hierarchy::ValidParentCheckPlugin;
 pub use extract_param::Extract;
 
 pub mod prelude {
     #[doc(hidden)]
     pub use crate::{
-        camera::{Camera, OrthographicProjection, PerspectiveProjection},
+        camera::{Camera, OrthographicProjection, PerspectiveProjection, Projection},
         color::Color,
         mesh::{shape, Mesh},
         render_resource::Shader,
         spatial_bundle::SpatialBundle,
-        texture::Image,
+        texture::{Image, ImagePlugin},
         view::{ComputedVisibility, Msaa, Visibility, VisibilityBundle},
     };
 }
 
+use globals::GlobalsPlugin;
 pub use once_cell;
+use prelude::ComputedVisibility;
 
 use crate::{
     camera::{CameraPlugin, ManualTextureViews},
@@ -42,8 +47,7 @@ use crate::{
     primitives::{CubemapFrusta, Frustum},
     render_graph::RenderGraph,
     render_resource::{PipelineCache, Shader, ShaderLoader},
-    renderer::render_system,
-    texture::ImagePlugin,
+    renderer::{render_system, RenderInstance},
     view::{ViewPlugin, WindowRenderPlugin},
 };
 use bevy_app::{App, AppLabel, Plugin};
@@ -91,8 +95,12 @@ pub enum RenderStage {
 /// This resource is only available during [`RenderStage::Extract`] and not
 /// during command application of that stage.
 /// See [`Extract`] for more details.
-#[derive(Default)]
+#[derive(Resource, Default)]
 pub struct MainWorld(World);
+
+/// The Render App World. This is only available as a resource during the Extract step.
+#[derive(Resource, Default)]
+pub struct RenderWorld(World);
 
 impl Deref for MainWorld {
     type Target = World;
@@ -135,35 +143,46 @@ impl Plugin for RenderPlugin {
 
         app.init_resource::<ManualTextureViews>();
         if let Some(backends) = options.backends {
+            let windows = app.world.resource_mut::<bevy_window::Windows>();
             let instance = wgpu::Instance::new(backends);
-            let surface = {
-                let windows = app.world.resource_mut::<bevy_window::Windows>();
-                let raw_handle = windows.get_primary().map(|window| unsafe {
-                    let handle = window.raw_window_handle().get_handle();
+
+            let surface = windows
+                .get_primary()
+                .and_then(|window| window.raw_handle())
+                .map(|wrapper| unsafe {
+                    let handle = wrapper.get_handle();
                     instance.create_surface(&handle)
                 });
-                raw_handle
-            };
+
             let request_adapter_options = wgpu::RequestAdapterOptions {
                 power_preference: options.power_preference,
                 compatible_surface: surface.as_ref(),
                 ..Default::default()
             };
 
-            let (device, queue, adapter_info) = match (
+            let (device, queue, adapter_info, adapter) = match (
                 app.world.get_resource::<renderer::RenderDevice>(),
                 app.world.get_resource::<renderer::RenderQueue>(),
-                app.world.get_resource::<wgpu::AdapterInfo>(),
+                app.world.get_resource::<renderer::RenderAdapterInfo>(),
+                // app.world.get_resource::<renderer::RenderAdapter>(),
             ) {
                 (Some(dev), Some(queue), Some(adapter_info)) => {
-                    (dev.clone(), queue.clone(), adapter_info.clone())
+                    (dev.clone(), queue.clone(), adapter_info.clone(), None)
                 }
-                _ => futures_lite::future::block_on(renderer::initialize_renderer(
-                    &instance,
-                    &options,
-                    &request_adapter_options,
-                )),
+                _ => {
+                    let (dev, queue, adapter_info, adapter) =
+                        futures_lite::future::block_on(renderer::initialize_renderer(
+                            &instance,
+                            &options,
+                            &request_adapter_options,
+                        ));
+                    (dev, queue, adapter_info, Some(adapter))
+                }
             };
+            //  only use adapter on non-xr build
+            if let Some(ref adapter) = adapter {
+                app.insert_resource(adapter.clone());
+            }
             // let (device, queue, adapter_info) = futures_lite::future::block_on(
             //     renderer::initialize_renderer(&instance, &options, &request_adapter_options),
             // );
@@ -197,6 +216,10 @@ impl Plugin for RenderPlugin {
             // after access to the main world is removed
             // See also https://github.com/bevyengine/bevy/issues/5082
             extract_stage.set_apply_buffers(false);
+            //  only use adapter on non-xr build
+            if let Some(ref adapter) = adapter {
+                render_app.insert_resource(adapter.clone());
+            }
             render_app
                 .add_stage(RenderStage::Extract, extract_stage)
                 .add_stage(RenderStage::Prepare, SystemStage::parallel())
@@ -206,17 +229,16 @@ impl Plugin for RenderPlugin {
                     RenderStage::Render,
                     SystemStage::parallel()
                         .with_system(PipelineCache::process_pipeline_queue_system)
-                        .with_system(render_system.exclusive_system().at_end()),
+                        .with_system(render_system.at_end()),
                 )
                 .add_stage(RenderStage::Cleanup, SystemStage::parallel())
                 .init_resource::<RenderGraph>()
-                .insert_resource(instance)
+                .insert_resource(RenderInstance(instance))
                 .insert_resource(device)
                 .insert_resource(queue)
                 .insert_resource(adapter_info)
                 .insert_resource(pipeline_cache)
-                .insert_resource(asset_server)
-                .init_resource::<RenderGraph>();
+                .insert_resource(asset_server);
 
             render_app.add_system_to_stage(RenderStage::Extract, extract_manual_texture_views);
             let (sender, receiver) = bevy_time::create_time_channels();
@@ -235,15 +257,20 @@ impl Plugin for RenderPlugin {
                     // reserve all existing app entities for use in render_app
                     // they can only be spawned using `get_or_spawn()`
                     let meta_len = app_world.entities().meta_len();
-                    render_app
-                        .world
-                        .entities()
-                        .reserve_entities(meta_len as u32);
 
-                    // flushing as "invalid" ensures that app world entities aren't added as "empty archetype" entities by default
-                    // these entities cannot be accessed without spawning directly onto them
-                    // this _only_ works as expected because clear_entities() is called at the end of every frame.
-                    unsafe { render_app.world.entities_mut() }.flush_as_invalid();
+                    assert_eq!(
+                        render_app.world.entities().len(),
+                        0,
+                        "An entity was spawned after the entity list was cleared last frame and before the extract stage began. This is not supported",
+                    );
+
+                    // This is safe given the clear_entities call in the past frame and the assert above
+                    unsafe {
+                        render_app
+                            .world
+                            .entities_mut()
+                            .flush_and_reserve_invalid_assuming_no_entities(meta_len);
+                    }
                 }
 
                 {
@@ -263,7 +290,7 @@ impl Plugin for RenderPlugin {
                     // prepare
                     let prepare = render_app
                         .schedule
-                        .get_stage_mut::<SystemStage>(&RenderStage::Prepare)
+                        .get_stage_mut::<SystemStage>(RenderStage::Prepare)
                         .unwrap();
                     prepare.run(&mut render_app.world);
                 }
@@ -276,7 +303,7 @@ impl Plugin for RenderPlugin {
                     // queue
                     let queue = render_app
                         .schedule
-                        .get_stage_mut::<SystemStage>(&RenderStage::Queue)
+                        .get_stage_mut::<SystemStage>(RenderStage::Queue)
                         .unwrap();
                     queue.run(&mut render_app.world);
                 }
@@ -289,7 +316,7 @@ impl Plugin for RenderPlugin {
                     // phase sort
                     let phase_sort = render_app
                         .schedule
-                        .get_stage_mut::<SystemStage>(&RenderStage::PhaseSort)
+                        .get_stage_mut::<SystemStage>(RenderStage::PhaseSort)
                         .unwrap();
                     phase_sort.run(&mut render_app.world);
                 }
@@ -302,7 +329,7 @@ impl Plugin for RenderPlugin {
                     // render
                     let render = render_app
                         .schedule
-                        .get_stage_mut::<SystemStage>(&RenderStage::Render)
+                        .get_stage_mut::<SystemStage>(RenderStage::Render)
                         .unwrap();
                     render.run(&mut render_app.world);
                 }
@@ -315,7 +342,7 @@ impl Plugin for RenderPlugin {
                     // cleanup
                     let cleanup = render_app
                         .schedule
-                        .get_stage_mut::<SystemStage>(&RenderStage::Cleanup)
+                        .get_stage_mut::<SystemStage>(RenderStage::Cleanup)
                         .unwrap();
                     cleanup.run(&mut render_app.world);
                 }
@@ -329,19 +356,19 @@ impl Plugin for RenderPlugin {
             });
         }
 
-        app.add_plugin(WindowRenderPlugin)
+        app.add_plugin(ValidParentCheckPlugin::<ComputedVisibility>::default())
+            .add_plugin(WindowRenderPlugin)
             .add_plugin(CameraPlugin)
             .add_plugin(ViewPlugin)
             .add_plugin(MeshPlugin)
-            // NOTE: Load this after renderer initialization so that it knows about the supported
-            // compressed texture formats
-            .add_plugin(ImagePlugin);
+            .add_plugin(GlobalsPlugin)
+            .add_plugin(FrameCountPlugin);
     }
 }
 
 /// A "scratch" world used to avoid allocating new worlds every frame when
 /// swapping out the [`MainWorld`] for [`RenderStage::Extract`].
-#[derive(Default)]
+#[derive(Resource, Default)]
 struct ScratchMainWorld(World);
 
 /// Executes the [`Extract`](RenderStage::Extract) stage of the renderer.
@@ -349,7 +376,7 @@ struct ScratchMainWorld(World);
 fn extract(app_world: &mut World, render_app: &mut App) {
     let extract = render_app
         .schedule
-        .get_stage_mut::<SystemStage>(&RenderStage::Extract)
+        .get_stage_mut::<SystemStage>(RenderStage::Extract)
         .unwrap();
 
     // temporarily add the app world to the render world as a resource
@@ -385,3 +412,21 @@ fn extract_manual_texture_views(
 // ) {
 //     *render_assets = source_assets.clone();
 // }
+pub struct FrameCountPlugin;
+impl Plugin for FrameCountPlugin {
+    fn build(&self, app: &mut bevy_app::App) {
+        app.add_system(update_frame_count);
+
+        if let Ok(render_app) = app.get_sub_app_mut(RenderApp) {
+            render_app.add_system_to_stage(RenderStage::Extract, extract_frame_count);
+        }
+    }
+}
+
+fn update_frame_count(mut frame_count: ResMut<FrameCount>) {
+    frame_count.0 = frame_count.0.wrapping_add(1);
+}
+
+fn extract_frame_count(mut commands: Commands, frame_count: Extract<Res<FrameCount>>) {
+    commands.insert_resource(**frame_count);
+}

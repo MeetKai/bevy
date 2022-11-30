@@ -69,13 +69,17 @@ fn fragment_fn(frag_in: FragmentInput) -> @location(0) vec4<f32> {
 
         pbr_input.frag_coord = frag_in.frag_coord;
         pbr_input.world_position = frag_in.world_position;
-        pbr_input.world_normal = frag_in.world_normal;
+        pbr_input.world_normal = prepare_world_normal(
+            frag_in.world_normal,
+            (material.flags & STANDARD_MATERIAL_FLAGS_DOUBLE_SIDED_BIT) != 0u,
+            frag_in.is_front,
+        );
 
         pbr_input.is_orthographic = view.projection[3].w == 1.0;
 
-        pbr_input.N = prepare_normal(
+        pbr_input.N = apply_normal_mapping(
             material.flags,
-            frag_in.world_normal,
+            pbr_input.world_normal,
 #ifdef VERTEX_TANGENTS
 #ifdef STANDARDMATERIAL_NORMAL_MAP
             frag_in.world_tangent,
@@ -84,12 +88,19 @@ fn fragment_fn(frag_in: FragmentInput) -> @location(0) vec4<f32> {
 #ifdef VERTEX_UVS
             frag_in.uv,
 #endif
-            frag_in.is_front,
         );
         pbr_input.V = calculate_view(frag_in.world_position, pbr_input.is_orthographic);
-
-        output_color = tone_mapping(pbr(pbr_input));
+        output_color = pbr(pbr_input);
+    } else {
+        output_color = alpha_discard(material, output_color);
     }
 
+#ifdef TONEMAP_IN_SHADER
+        output_color = tone_mapping(output_color);
+#endif
+// TODO: uncomment?, it was causing a bug
+// #ifdef DEBAND_DITHER
+        // output_color = dither(output_color, in.frag_coord.xy);
+// #endif
     return output_color;
 }

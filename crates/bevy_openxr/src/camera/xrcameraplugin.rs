@@ -3,7 +3,7 @@ use bevy_app::{App, CoreStage, Plugin};
 use bevy_core_pipeline::core_3d::{AlphaMask3d, Opaque3d, Transparent3d};
 use bevy_ecs::{
     prelude::{Component, World},
-    schedule::ParallelSystemDescriptorCoercion,
+    schedule::IntoSystemDescriptor,
     system::{Commands, Res},
 };
 use bevy_render::{
