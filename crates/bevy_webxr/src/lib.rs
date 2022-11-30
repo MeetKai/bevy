@@ -1,31 +1,25 @@
-use bevy_app::App;
-use bevy_app::Plugin;
-use bevy_ecs::prelude::Component;
-use bevy_ecs::schedule::IntoSystemDescriptor;
-use bevy_ecs::system::Commands;
-use bevy_ecs::system::Res;
-use bevy_ecs::system::ResMut;
-use bevy_ecs::system::Resource;
-use bevy_log::info;
-use bevy_math::UVec2;
-use bevy_math::Vec3;
-use bevy_render::camera::Camera;
-use bevy_render::camera::ManualTextureViews;
-use bevy_render::camera::RenderTarget;
-use bevy_render::camera::Viewport;
-use bevy_render::prelude::Color;
-use bevy_render::renderer::RenderDevice;
-use bevy_utils::default;
-use bevy_utils::Uuid;
+use bevy_app::{App, Plugin, StartupStage};
+use bevy_ecs::prelude::{Component, World};
+use bevy_ecs::{
+    schedule::IntoSystemDescriptor,
+    system::{Commands, Res, ResMut, Resource},
+};
+use bevy_math::{UVec2, Vec3};
+use bevy_render::renderer::{RenderAdapterInfo, RenderQueue};
+use bevy_render::{
+    camera::{Camera, ManualTextureViews, RenderTarget, Viewport},
+    renderer::RenderDevice,
+};
+use bevy_utils::{default, Uuid};
 use js_sys::Boolean;
 use raw_window_handle;
 use std::cell::RefCell;
 use std::rc::Rc;
-use wasm_bindgen::prelude::Closure;
-use wasm_bindgen::JsCast;
-use wasm_bindgen::JsValue;
+use std::sync::Arc;
+use wasm_bindgen::{prelude::Closure, JsCast, JsValue};
 use wasm_bindgen_futures::JsFuture;
 use web_sys::XrWebGlLayer;
+use wgpu::{Adapter, Device, Queue};
 
 // WebXR <-> Bevy XR Conversion
 pub(crate) trait XrFrom<T> {
@@ -73,28 +67,21 @@ impl XrFrom<bevy_xr::XrSessionMode> for web_sys::XrSessionMode {
 pub struct WebXrContext {
     pub session: web_sys::XrSession,
     pub canvas: Canvas,
-    // adapter: Adapter,
-    // device: Arc<Device>,
-    // queue: Queue,
 }
 
 impl WebXrContext {
     /// Get a WebXrContext, you must do this in an async function, so you have to call this before `bevy_app::App::run()` in an async main fn and insett it
     pub async fn get_context(mode: bevy_xr::XrSessionMode) -> Result<Self, JsValue> {
-        // gloo_console::log!("beginning of get context");
         let mode = mode.xr_into();
         let window = gloo_utils::window();
         let navigator = window.navigator();
         let xr_system = navigator.xr();
-        // gloo_console::log!("pres esssion supported");
 
         let session_supported =
             JsFuture::from(xr_system.is_session_supported(web_sys::XrSessionMode::ImmersiveVr))
                 .await?
                 .dyn_into::<Boolean>()?
                 .value_of();
-
-        // gloo_console::log!("post session supported");
 
         if !session_supported {
             return Err("XrSessionMode not supported.".into());
@@ -103,10 +90,8 @@ impl WebXrContext {
         let session = JsFuture::from(xr_system.request_session(mode))
             .await?
             .dyn_into::<web_sys::XrSession>()?;
-        // gloo_console::log!("pre-canvas");
 
         let canvas = Canvas::default();
-        // gloo_console::log!("psot canvas");
 
         Ok(WebXrContext { session, canvas })
     }
@@ -119,115 +104,147 @@ impl Plugin for WebXrPlugin {
     fn build(&self, app: &mut bevy_app::App) {
         bevy_log::info!("in webxr");
         app.set_runner(webxr_runner);
-        app.add_startup_system(setup);
-        app.add_system(render_webxr.label("render_webxr"));
+        setup(&mut app.world);
+        app.add_system(update_manual_texture_views.label("render_webxr"));
     }
 }
 
-#[derive(Component)]
-struct LeftCamera;
+pub async fn initialize_webxr() -> InitializedState {
+    let webxr_context = WebXrContext::get_context(bevy_xr::XrSessionMode::ImmersiveVR)
+        .await
+        .unwrap();
 
-#[derive(Component)]
-struct RightCamera;
+    let webgl2_context = webxr_context.canvas.create_webgl2_context();
 
-fn setup(mut commands: Commands, frame: bevy_ecs::prelude::NonSend<web_sys::XrFrame>) {
-    let base_layer: XrWebGlLayer = frame.session().render_state().base_layer().unwrap();
-    let resolution = UVec2::new(
-        base_layer.framebuffer_width(),
-        base_layer.framebuffer_height(),
-    );
-    let physical_size = UVec2::new(resolution.x / 2, resolution.y);
-    let left_viewport = Viewport {
-        physical_position: UVec2::ZERO,
-        physical_size,
-        ..default()
-    };
-    let right_viewport = Viewport {
-        physical_position: UVec2::new(resolution.x / 2, 0),
-        physical_size,
-        ..default()
-    };
+    // WGpu Setup
+    let instance = wgpu::Instance::new(wgpu::Backends::GL);
 
-    let id = Uuid::new_v4();
-    commands.insert_resource(FramebufferUuids { left: id });
-    commands.spawn((bevy_core_pipeline::core_3d::Camera3dBundle {
-        camera_3d: bevy_core_pipeline::core_3d::Camera3d {
-            // clear_color: bevy_core_pipeline::clear_color::ClearColorConfig::Custom(Color::GREEN),
-            ..default()
-        },
-        camera: Camera {
-            target: RenderTarget::TextureView(id),
-            viewport: Some(left_viewport),
-            ..default()
-        },
-        transform: bevy_transform::components::Transform::from_translation(Vec3::new(
-            0.0, 0.0, 15.0,
-        ))
-        .looking_at(Vec3::ZERO, Vec3::Y),
-        ..default()
-    },));
-    commands.spawn((bevy_core_pipeline::core_3d::Camera3dBundle {
-        camera_3d: bevy_core_pipeline::core_3d::Camera3d {
-            clear_color: bevy_core_pipeline::clear_color::ClearColorConfig::None,
-            ..default()
-        },
-        camera: Camera {
-            target: RenderTarget::TextureView(id),
-            priority: 1,
-            viewport: Some(right_viewport),
-            ..default()
-        },
-        transform: bevy_transform::components::Transform::from_translation(Vec3::new(
-            0.0, 0.0, 15.0,
-        ))
-        .looking_at(Vec3::ZERO, Vec3::Y),
-        ..default()
-    },));
+    let surface = unsafe { instance.create_surface(&webxr_context.canvas) };
+
+    let adapter = instance
+        .request_adapter(&wgpu::RequestAdapterOptions {
+            power_preference: wgpu::PowerPreference::HighPerformance,
+            force_fallback_adapter: false,
+            compatible_surface: Some(&surface),
+        })
+        .await
+        .expect("No suitable GPU adapters found on the system!");
+
+    let (device, queue) = adapter
+        .request_device(
+            &wgpu::DeviceDescriptor {
+                label: Some("device"),
+                features: adapter.features(),
+                limits: adapter.limits(),
+            },
+            None,
+        )
+        .await
+        .expect("Unable to find a suitable GPU adapter!");
+
+    wasm_bindgen_futures::JsFuture::from(webgl2_context.make_xr_compatible())
+        .await
+        .expect("Failed to make the webgl context xr-compatible");
+
+    InitializedState {
+        webgl2_context,
+        webxr_context,
+        adapter,
+        device,
+        queue,
+    }
 }
 
-fn render_webxr(
+#[derive(Resource)]
+pub struct InitializedState {
+    webgl2_context: web_sys::WebGl2RenderingContext,
+    webxr_context: WebXrContext,
+    adapter: Adapter,
+    device: Device,
+    queue: Queue,
+}
+
+unsafe impl Send for InitializedState {}
+
+unsafe impl Sync for InitializedState {}
+
+fn setup(world: &mut World) {
+    let InitializedState {
+        webgl2_context,
+        webxr_context,
+        adapter,
+        device,
+        queue,
+    } = world.remove_resource().unwrap();
+    let adapter_info = adapter.get_info();
+    let mut layer_init = web_sys::XrWebGlLayerInit::new();
+
+    let xr_gl_layer = web_sys::XrWebGlLayer::new_with_web_gl2_rendering_context_and_layer_init(
+        &webxr_context.session,
+        &webgl2_context,
+        &layer_init,
+    )
+    .unwrap();
+
+    let mut render_state_init = web_sys::XrRenderStateInit::new();
+    render_state_init
+        .depth_near(0.001)
+        .base_layer(Some(&xr_gl_layer));
+
+    webxr_context
+        .session
+        .update_render_state_with_state(&render_state_init);
+
+    world.insert_resource(RenderDevice::from(Arc::new(device)));
+    world.insert_resource(RenderQueue(Arc::new(queue)));
+    world.insert_resource(RenderAdapterInfo(adapter_info));
+    world.insert_non_send_resource(webxr_context);
+    let id = Uuid::new_v4();
+    world.insert_resource(FramebufferUuid(id));
+}
+
+/// System that updates `ManualTextureViews` with the new `WebGlFramebuffer`
+fn update_manual_texture_views(
     mut commands: Commands,
     frame: bevy_ecs::prelude::NonSend<web_sys::XrFrame>,
     device: Res<RenderDevice>,
     queue: Res<bevy_render::renderer::RenderQueue>,
-    framebuffer_uuids: Res<FramebufferUuids>,
+    framebuffer_uuid: Res<FramebufferUuid>,
     mut manual_tex_view: ResMut<ManualTextureViews>,
 ) {
     let base_layer: XrWebGlLayer = frame.session().render_state().base_layer().unwrap();
 
-    // info!("post base layer");
-
+    //Reflect hack because base_layer.framebuffer is technically null
     let framebuffer: web_sys::WebGlFramebuffer =
         js_sys::Reflect::get(&base_layer, &"framebuffer".into())
             .unwrap()
             .into();
-
-    // info!("post framebuffer");
     let device = device.wgpu_device();
-    // info!("device");
+
     let framebuffer_colour_attachment: VrFramebufferTexture = create_view_from_device_framebuffer(
         device,
         framebuffer.clone(),
         &base_layer,
         wgpu::TextureFormat::Rgba8UnormSrgb,
-        "device framebuffer (colour)",
+        "Device Framebuffer (Color)",
     );
-    let left_id = framebuffer_uuids.left;
+
     let resolution = UVec2::new(
         base_layer.framebuffer_width(),
         base_layer.framebuffer_height(),
     );
+
     manual_tex_view.insert(
-        left_id,
+        framebuffer_uuid.0,
         (framebuffer_colour_attachment.view.into(), resolution),
     );
 }
 
+/// Resource that contains the `Uuid` corresponding to WebGlFramebuffer
 #[derive(Resource)]
-pub struct FramebufferUuids {
-    pub left: Uuid,
-}
+pub struct FramebufferUuid(pub Uuid);
 
+/// Bevy runner that works with
 fn webxr_runner(mut app: App) {
     let webxr_context = app.world.get_non_send_resource::<WebXrContext>().unwrap();
     let session = webxr_context.session.clone();
@@ -236,24 +253,23 @@ fn webxr_runner(mut app: App) {
     let g: Rc<RefCell<Option<XrFrameHandler>>> = f.clone();
     let closure_session = session.clone();
     *g.borrow_mut() = Some(Closure::new(move |_time: f64, frame: web_sys::XrFrame| {
-        //Tick Bevy World
         app.world.insert_non_send_resource(frame.clone());
         app.update();
 
         let session = frame.session();
-
         session.request_animation_frame(f.borrow().as_ref().unwrap().as_ref().unchecked_ref());
     }));
-
     session.request_animation_frame(g.borrow().as_ref().unwrap().as_ref().unchecked_ref());
 }
 
+/// Wrapper for `HtmlCanvasElement`
 pub struct Canvas {
     inner: web_sys::HtmlCanvasElement,
     id: u32,
 }
 
 impl Canvas {
+    /// Create new Canvas
     pub fn new_with_id(id: u32) -> Self {
         let canvas: web_sys::HtmlCanvasElement = web_sys::window()
             .unwrap()
@@ -375,6 +391,7 @@ pub fn create_view_from_device_framebuffer(
 }
 
 #[derive(Resource)]
+/// Wrapper for the WebXR Framebuffer
 pub struct VrFramebufferTexture {
     pub texture: wgpu::Texture,
     pub view: wgpu::TextureView,

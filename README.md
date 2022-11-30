@@ -1,3 +1,11 @@
+bevy_webxr Fork
+
+## Running on WebXR
+
+An example of using the webxr features is available at [webxr-testing](https://github.com/dekuraan/webxr-testing)
+
+## OpenXR
+
 This is a work-in-progress branch of bevy to add openxr support. It is based mostly off of [zarik5's work](https://github.com/zarik5/bevy). The goal is to support both Oculus and PCVR.
 
 ## Running on Oculus
