@@ -1,7 +1,6 @@
 pub mod conversion;
 pub mod initialization;
-pub mod input;
-pub mod poses;
+pub mod interaction;
 pub mod webxr_context;
 
 use bevy_app::{App, Plugin};
