@@ -35,6 +35,8 @@ wgpu-hal = { version = "0.14.0", features = ["gles"] }
 raw-window-handle = "0.5.0"
 glow = { git = "https://github.com/grovesNL/glow/", rev = "c8a011fcd57a5c68cc917ed394baa484bdefc909" }
 web-sys = { version = "0.3", features = [
+    "DomPointInit",
+    "DomPointReadOnly",
     "WebGlFramebuffer",
     "WebGl2RenderingContext",
     "HtmlCanvasElement",
@@ -43,6 +45,7 @@ web-sys = { version = "0.3", features = [
     "XrBoundedReferenceSpace",
     "XrEye",
     "XrFrame",
+    "XrHand",
     "XrHandedness",
     "XrInputSource",
     "XrInputSourceArray",
@@ -50,6 +53,8 @@ web-sys = { version = "0.3", features = [
     "XrInputSourceEventInit",
     "XrInputSourcesChangeEvent",
     "XrInputSourcesChangeEventInit",
+    "XrJointPose",
+    "XrJointSpace",
     "XrPose",
     "XrReferenceSpace",
     "XrReferenceSpaceEvent",
@@ -78,3 +83,6 @@ gloo-console = "0.2.3"
 [patch.crates-io]
 wgpu = { git = "https://github.com/expenses/wgpu", rev = "d1a9ad7801022d2b733746e9d13152ce2705519b" }
 wgpu-hal = { git = "https://github.com/expenses/wgpu", rev = "d1a9ad7801022d2b733746e9d13152ce2705519b" }
+wasm-bindgen = { git = "https://github.com/rustwasm/wasm-bindgen", rev = "a8695bb66c4d92cde4a1746a474084c58801a989" }
+web-sys = { git = "https://github.com/rustwasm/wasm-bindgen", rev = "a8695bb66c4d92cde4a1746a474084c58801a989" }
+js-sys = { git = "https://github.com/rustwasm/wasm-bindgen", rev = "a8695bb66c4d92cde4a1746a474084c58801a989" }
