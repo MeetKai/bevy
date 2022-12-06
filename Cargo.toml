@@ -1636,6 +1636,9 @@ keystore_password = "android"
 [patch.crates-io]
 wgpu = { git = "https://github.com/expenses/wgpu", rev = "d1a9ad7801022d2b733746e9d13152ce2705519b" }
 wgpu-hal = { git = "https://github.com/expenses/wgpu", rev = "d1a9ad7801022d2b733746e9d13152ce2705519b" }
+wasm-bindgen = { git = "https://github.com/rodrigocam/wasm-bindgen", branch = "joint-features" }
+web-sys = { git = "https://github.com/rodrigocam/wasm-bindgen", branch = "joint-features" }
+js-sys = { git = "https://github.com/rodrigocam/wasm-bindgen", branch = "joint-features" }
 # wgpu-core = { path = "../wgpu/wgpu-core" }
 
 # uncomment this on macos until openxr sdk is updated with macos buildability
