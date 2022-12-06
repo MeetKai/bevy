@@ -140,7 +140,6 @@ fn webxr_runner(mut app: App) {
     let f: Rc<RefCell<Option<XrFrameHandler>>> = Rc::new(RefCell::new(None));
     let g: Rc<RefCell<Option<XrFrameHandler>>> = f.clone();
 
-
     *g.borrow_mut() = Some(Closure::new(move |_time: f64, frame: web_sys::XrFrame| {
         app.world.insert_non_send_resource(frame.clone());
 
