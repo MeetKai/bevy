@@ -2,11 +2,11 @@ use bevy_math::{Quat, Vec3};
 use web_sys::DomPointInit;
 
 // WebXR <-> Bevy XR Conversion
-pub(crate) trait XrFrom<T> {
+pub trait XrFrom<T> {
     fn xr_from(_: T) -> Self;
 }
 
-pub(crate) trait XrInto<T> {
+pub trait XrInto<T> {
     fn xr_into(self) -> T;
 }
 
@@ -98,6 +98,33 @@ impl XrFrom<web_sys::XrRigidTransform> for bevy_xr::interaction::XrRigidTransfor
                 orientation.w() as f32,
             ),
         }
+    }
+}
+
+impl XrFrom<web_sys::XrRigidTransform> for bevy_transform::components::Transform {
+    fn xr_from(rigid_transfrom: web_sys::XrRigidTransform) -> Self {
+        bevy_transform::components::Transform {
+            translation: rigid_transfrom.position().xr_into(),
+            rotation: rigid_transfrom.orientation().xr_into(),
+            ..Default::default()
+        }
+    }
+}
+
+impl XrFrom<web_sys::DomPointReadOnly> for bevy_math::Vec3 {
+    fn xr_from(point: web_sys::DomPointReadOnly) -> Self {
+        bevy_math::Vec3::new(point.x() as f32, point.y() as f32, point.z() as f32)
+    }
+}
+
+impl XrFrom<web_sys::DomPointReadOnly> for bevy_math::Quat {
+    fn xr_from(point: web_sys::DomPointReadOnly) -> Self {
+        bevy_math::Quat::from_xyzw(
+            point.x() as f32,
+            point.y() as f32,
+            point.z() as f32,
+            point.w() as f32,
+        )
     }
 }
 
