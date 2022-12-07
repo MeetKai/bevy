@@ -143,6 +143,8 @@ fn webxr_runner(mut app: App) {
     *g.borrow_mut() = Some(Closure::new(move |_time: f64, frame: web_sys::XrFrame| {
         app.world.insert_non_send_resource(frame.clone());
 
+        let webxr_context = app.world.get_non_send_resource::<WebXrContext>().unwrap();
+
         let (space, space_type) = webxr_context.space_info.clone();
         // update the current frame inside tracking soource
         let tracking_source = TrackingSource::new(space, space_type, frame.clone());
