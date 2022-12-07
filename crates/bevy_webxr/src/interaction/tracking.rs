@@ -44,12 +44,14 @@ impl bevy_xr::interaction::implementation::XrTrackingSourceBackend for TrackingS
     }
 
     fn bounds_geometry(&self) -> Option<Vec<Vec3>> {
-        let space = self.space.clone().lock().unwrap();
+        let space = self.space.clone();
+        let space = space.lock().unwrap();
         get_bounds_geometry(&space)
     }
 
     fn views_poses(&self) -> Vec<bevy_xr::XrPose> {
-        let base_space = self.space.clone().lock().unwrap();
+        let base_space = self.space.clone();
+        let base_space = base_space.lock().unwrap();
         get_views_poses(&self.frame, &base_space)
     }
 
@@ -57,7 +59,8 @@ impl bevy_xr::interaction::implementation::XrTrackingSourceBackend for TrackingS
         let left_input_src = self.frame.session().input_sources().get(0);
         let right_input_src = self.frame.session().input_sources().get(1);
 
-        let base_space = self.space.clone().lock().unwrap();
+        let base_space = self.space.clone();
+        let base_space = base_space.lock().unwrap();
 
         return [
             get_hands_pose(left_input_src, &self.frame, &base_space),
@@ -69,7 +72,8 @@ impl bevy_xr::interaction::implementation::XrTrackingSourceBackend for TrackingS
         let left_input_src = self.frame.session().input_sources().get(0);
         let right_input_src = self.frame.session().input_sources().get(1);
 
-        let base_space = self.space.clone().lock().unwrap();
+        let base_space = self.space.clone();
+        let base_space = base_space.lock().unwrap();
 
         return [
             get_hands_skeleton_pose(left_input_src, &self.frame, &base_space),
@@ -81,7 +85,8 @@ impl bevy_xr::interaction::implementation::XrTrackingSourceBackend for TrackingS
         let left_input_src = self.frame.session().input_sources().get(0);
         let right_input_src = self.frame.session().input_sources().get(1);
 
-        let base_space = self.space.clone().lock().unwrap();
+        let base_space = self.space.clone();
+        let base_space = base_space.lock().unwrap();
 
         return [
             get_target_ray(left_input_src, &self.frame, &base_space),
@@ -90,7 +95,8 @@ impl bevy_xr::interaction::implementation::XrTrackingSourceBackend for TrackingS
     }
 
     fn viewer_target_ray(&self) -> bevy_xr::XrPose {
-        let base_space = self.space.clone().lock().unwrap();
+        let base_space = self.space.clone();
+        let base_space = base_space.lock().unwrap();
 
         let viewer_pose = self.frame.get_viewer_pose(&base_space).unwrap();
 
