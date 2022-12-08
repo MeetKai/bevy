@@ -40,3 +40,13 @@ impl XrFrom<bevy_xr::XrSessionMode> for web_sys::XrSessionMode {
         }
     }
 }
+
+impl XrFrom<web_sys::XrInputSourceArray> for Vec<web_sys::XrInputSource> {
+    fn xr_from(sources: web_sys::XrInputSourceArray) -> Self {
+        let mut output = Vec::new();
+        for index in 0..sources.length() {
+            output.push(sources.get(index).unwrap());
+        }
+        output
+    }
+}

@@ -8,13 +8,15 @@ use bevy_ecs::{
     prelude::World,
     system::{Res, ResMut, Resource},
 };
+use bevy_log::info;
 use bevy_math::UVec2;
 use bevy_render::{
     camera::ManualTextureViews,
     renderer::{RenderAdapterInfo, RenderDevice, RenderQueue},
 };
 use bevy_utils::Uuid;
-use bevy_xr::XrActionSet;
+use bevy_xr::{XrActionSet, XrSessionMode, XrSystem};
+use conversion::XrFrom;
 use initialization::InitializedState;
 use std::{cell::RefCell, rc::Rc, sync::Arc};
 use wasm_bindgen::{prelude::Closure, JsCast};
@@ -135,6 +137,21 @@ fn update_manual_texture_views(
     );
 }
 
+fn setup_interaction(xr_system: &mut XrSystem, session: web_sys::XrSession) {
+    info!("Setting up interactions");
+    for source in Vec::<web_sys::XrInputSource>::xr_from(session.input_sources()) {
+        gloo_console::console!(source.clone());
+        gloo_console::console!(source.clone().profiles());
+        let profiles: Vec<Option<String>> = source
+            .profiles()
+            .to_vec()
+            .into_iter()
+            .map(|x| x.as_string())
+            .collect();
+        info!("{:?}", profiles);
+    }
+}
+
 /// Bevy runner that works with WebXR
 fn webxr_runner(mut app: App) {
     let webxr_context = app.world.get_non_send_resource::<WebXrContext>().unwrap();
@@ -142,6 +159,14 @@ fn webxr_runner(mut app: App) {
     type XrFrameHandler = Closure<dyn FnMut(f64, web_sys::XrFrame)>;
     let f: Rc<RefCell<Option<XrFrameHandler>>> = Rc::new(RefCell::new(None));
     let g: Rc<RefCell<Option<XrFrameHandler>>> = f.clone();
+
+    // TODO: Update with accurate availble session modes when async is supported
+    app.world
+        .insert_resource(XrSystem::new(vec![XrSessionMode::ImmersiveVR]));
+    println!("inserted XrSystem");
+
+    let mut xr_system = app.world.get_resource_mut::<XrSystem>().unwrap();
+    setup_interaction(&mut xr_system, session.clone());
     *g.borrow_mut() = Some(Closure::new(move |_time: f64, frame: web_sys::XrFrame| {
         let action_set = app.world.get_resource_mut::<XrActionSet>().unwrap();
         handle_input(action_set, frame.clone());
