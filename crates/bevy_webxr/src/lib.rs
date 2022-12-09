@@ -36,11 +36,25 @@ impl Plugin for WebXrPlugin {
         app.set_runner(webxr_runner);
         setup(&mut app.world);
         app.add_startup_system(setup_webxr_pawn);
+        app.add_system(sync_head_tf);
         app.add_system(update_manual_texture_views);
     }
 }
 
-fn sync_head_tf() {}
+fn sync_head_tf(
+    mut head_tf_q: Query<&mut Transform, With<HeadMarker>>,
+    xr_ctx: NonSend<WebXrContext>,
+    frame: NonSend<web_sys::XrFrame>,
+) {
+    let reference_space = &xr_ctx.space_info.0;
+    let viewer_pose = frame.get_viewer_pose(&reference_space).unwrap();
+    let head_tf = viewer_pose.transform().xr_into();
+
+    for mut tf in &mut head_tf_q {
+        bevy_log::info!("{:?}", head_tf);
+        *tf = head_tf;
+    }
+}
 
 fn setup_webxr_pawn(
     xr_ctx: NonSend<WebXrContext>,
