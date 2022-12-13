@@ -11,7 +11,7 @@ pub mod webxr_context;
 
 use bevy_app::{App, Plugin};
 use bevy_ecs::{
-    prelude::{Component, With, Without, World},
+    prelude::{Component, With, World},
     system::{Commands, NonSend, Query, Res, ResMut, Resource},
 };
 use bevy_math::UVec2;
@@ -279,6 +279,7 @@ fn webxr_runner(mut app: App) {
     session.request_animation_frame(g.borrow().as_ref().unwrap().as_ref().unchecked_ref());
 }
 
+#[cfg(target_arch = "wasm32")]
 pub fn create_view_from_device_framebuffer(
     device: &wgpu::Device,
     framebuffer: web_sys::WebGlFramebuffer,
