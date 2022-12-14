@@ -10,7 +10,7 @@ pub mod interaction;
 pub mod webxr_context;
 
 use bevy_app::{App, Plugin};
-use bevy_asset::Assets;
+use bevy_asset::{AssetServer, Assets};
 use bevy_ecs::{
     prelude::{Component, With, Without, World},
     system::{Commands, NonSend, Query, Res, ResMut, Resource},
@@ -77,11 +77,16 @@ fn sync_hands_tf(
         let hand_pose = frame
             .get_pose(&is.grip_space().unwrap(), reference_space)
             .unwrap();
-        let hand_tf = hand_pose.transform().xr_into();
+        let hand_tf: bevy_transform::components::Transform  = hand_pose.transform().xr_into();
 
         for (hand, mut tf) in hands_tf_q.iter_mut().filter(|h| h.0 == &Hand::Left) {
-            *tf = hand_tf;
-            tf.translation *= 10.0;
+            *tf = Transform {
+                translation: bevy_math::Vec3::new(hand_tf.translation.x, - hand_tf.translation.y, hand_tf.translation.z),
+                rotation: hand_tf.rotation,
+                scale: hand_tf.scale
+            };
+            // *tf = hand_tf;
+            // tf.translation *= 10.0;
             bevy_log::info!("left hand transform {:?}", tf);
         }
     }
@@ -91,11 +96,17 @@ fn sync_hands_tf(
         let hand_pose = frame
             .get_pose(&is.grip_space().unwrap(), reference_space)
             .unwrap();
-        let hand_tf = hand_pose.transform().xr_into();
+        // let hand_tf = hand_pose.transform().xr_into();
+        let hand_tf: bevy_transform::components::Transform  = hand_pose.transform().xr_into();
 
         for (hand, mut tf) in hands_tf_q.iter_mut().filter(|h| h.0 == &Hand::Right) {
-            *tf = hand_tf;
-            tf.translation *= 10.0;
+            *tf = Transform {
+                translation: bevy_math::Vec3::new(hand_tf.translation.x, - hand_tf.translation.y, hand_tf.translation.z),
+                rotation: hand_tf.rotation,
+                scale: hand_tf.scale
+            };
+            // *tf = hand_tf;
+            // tf.translation *= 10.0;
             bevy_log::info!("right hand transform {:?}", tf);
         }
     }
@@ -109,6 +120,7 @@ fn setup_webxr_pawn(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
     mut images: ResMut<Assets<Image>>,
+    asset_server: Res<AssetServer>,
 ) {
     let reference_space = &xr_ctx.space_info.0;
     let viewer_pose = frame.get_viewer_pose(&reference_space).unwrap();
@@ -183,12 +195,14 @@ fn setup_webxr_pawn(
         )
     };
 
-    let cube_size = 0.1;
+    let cube_size = 0.05;
     let cube_handle = meshes.add(Mesh::from(shape::Box::new(cube_size, cube_size, cube_size)));
     let debug_material = materials.add(StandardMaterial {
         base_color_texture: Some(images.add(uv_debug_texture)),
         ..default()
     });
+
+    // let controller_gltf = asset_server.load("../../3d_model/controller.gltf#Scene0");
 
     commands
         .spawn((
@@ -231,29 +245,49 @@ fn setup_webxr_pawn(
                 },
                 RightEyeMarker,
             ));
-        })
-        .with_children(|head| {
-            head.spawn((
-                Hand::Left,
-                PbrBundle {
-                    mesh: cube_handle.clone(),
-                    material: debug_material.clone(),
-                    visibility: Visibility { is_visible: true },
-                    ..default()
-                }
-            ));
-        })
-        .with_children(|head| {
-            head.spawn((
-                Hand::Right,
-                PbrBundle {
-                    mesh: cube_handle.clone(),
-                    material: debug_material.clone(),
-                    visibility: Visibility { is_visible: true },
-                    ..default()
-                }
-            ));
         });
+        
+        commands.spawn((
+            Hand::Left,
+            PbrBundle {
+                mesh: cube_handle.clone(),
+                material: debug_material.clone(),
+                visibility: Visibility { is_visible: true },
+                ..default()
+            }
+        ));
+        
+        commands.spawn((
+            Hand::Right,
+            PbrBundle {
+                mesh: cube_handle.clone(),
+                material: debug_material.clone(),
+                visibility: Visibility { is_visible: true },
+                ..default()
+            }
+        ));
+        // .with_children(|head| {
+        //     head.spawn((
+        //         Hand::Left,
+        //         PbrBundle {
+        //             mesh: cube_handle.clone(),
+        //             material: debug_material.clone(),
+        //             visibility: Visibility { is_visible: true },
+        //             ..default()
+        //         }
+        //     ));
+        // })
+        // .with_children(|head| {
+        //     head.spawn((
+        //         Hand::Right,
+        //         PbrBundle {
+        //             mesh: cube_handle.clone(),
+        //             material: debug_material.clone(),
+        //             visibility: Visibility { is_visible: true },
+        //             ..default()
+        //         }
+        //     ));
+        // });
     bevy_log::info!("finished setup");
 }
 
