@@ -10,14 +10,19 @@ pub mod interaction;
 pub mod webxr_context;
 
 use bevy_app::{App, Plugin};
+use bevy_asset::Assets;
 use bevy_ecs::{
     prelude::{Component, With, Without, World},
     system::{Commands, NonSend, Query, Res, ResMut, Resource},
 };
 use bevy_math::UVec2;
+use bevy_pbr::{PbrBundle, StandardMaterial};
+use bevy_render::prelude::*;
 use bevy_render::{
     camera::{Camera, ManualTextureViews, RenderTarget, Viewport},
     renderer::{RenderAdapterInfo, RenderDevice, RenderQueue},
+    render_resource::{Extent3d, TextureDimension, TextureFormat},
+    view::Visibility,
 };
 use bevy_transform::{prelude::Transform, TransformBundle};
 use bevy_utils::{default, Uuid};
@@ -37,6 +42,7 @@ impl Plugin for WebXrPlugin {
         setup(&mut app.world);
         app.add_startup_system(setup_webxr_pawn);
         app.add_system(sync_head_tf);
+        app.add_system(sync_hands_tf);
         app.add_system(update_manual_texture_views);
     }
 }
@@ -48,11 +54,50 @@ fn sync_head_tf(
 ) {
     let reference_space = &xr_ctx.space_info.0;
     let viewer_pose = frame.get_viewer_pose(&reference_space).unwrap();
+    // bevy_log::info!("head transform before {:?}", viewer_pose.transform().position().y());
     let head_tf = viewer_pose.transform().xr_into();
 
     for mut tf in &mut head_tf_q {
-        bevy_log::info!("{:?}", head_tf);
+        // bevy_log::info!("head transform {:?}", head_tf);
         *tf = head_tf;
+    }
+}
+
+fn sync_hands_tf(
+    mut hands_tf_q: Query<(&Hand, &mut Transform), With<Hand>>,
+    xr_ctx: NonSend<WebXrContext>,
+    frame: NonSend<web_sys::XrFrame>,
+) {
+    let reference_space = &xr_ctx.space_info.0;
+    let input_sources = frame.session().input_sources();
+    let (left_input, right_input) = (input_sources.get(0), input_sources.get(1));
+
+    if let Some(is) = left_input {
+        // bevy_log::info!("syncing left hand");
+        let hand_pose = frame
+            .get_pose(&is.grip_space().unwrap(), reference_space)
+            .unwrap();
+        let hand_tf = hand_pose.transform().xr_into();
+
+        for (hand, mut tf) in hands_tf_q.iter_mut().filter(|h| h.0 == &Hand::Left) {
+            *tf = hand_tf;
+            tf.translation *= 10.0;
+            bevy_log::info!("left hand transform {:?}", tf);
+        }
+    }
+
+    if let Some(is) = right_input {
+        // bevy_log::info!("syncing right hand");
+        let hand_pose = frame
+            .get_pose(&is.grip_space().unwrap(), reference_space)
+            .unwrap();
+        let hand_tf = hand_pose.transform().xr_into();
+
+        for (hand, mut tf) in hands_tf_q.iter_mut().filter(|h| h.0 == &Hand::Right) {
+            *tf = hand_tf;
+            tf.translation *= 10.0;
+            bevy_log::info!("right hand transform {:?}", tf);
+        }
     }
 }
 
@@ -61,6 +106,9 @@ fn setup_webxr_pawn(
     frame: NonSend<web_sys::XrFrame>,
     id: Res<FramebufferUuid>,
     mut commands: Commands,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
+    mut images: ResMut<Assets<Image>>,
 ) {
     let reference_space = &xr_ctx.space_info.0;
     let viewer_pose = frame.get_viewer_pose(&reference_space).unwrap();
@@ -108,10 +156,45 @@ fn setup_webxr_pawn(
         ..default()
     };
 
+    let uv_debug_texture = {
+        const TEXTURE_SIZE: usize = 8;
+
+        let mut palette: [u8; 32] = [
+            255, 102, 159, 255, 255, 159, 102, 255, 236, 255, 102, 255, 121, 255, 102, 255, 102,
+            255, 198, 255, 102, 198, 255, 255, 121, 102, 255, 255, 236, 102, 255, 255,
+        ];
+
+        let mut texture_data = [0; TEXTURE_SIZE * TEXTURE_SIZE * 4];
+        for y in 0..TEXTURE_SIZE {
+            let offset = TEXTURE_SIZE * y * 4;
+            texture_data[offset..(offset + TEXTURE_SIZE * 4)].copy_from_slice(&palette);
+            palette.rotate_right(4);
+        }
+
+        Image::new_fill(
+            Extent3d {
+                width: TEXTURE_SIZE as u32,
+                height: TEXTURE_SIZE as u32,
+                depth_or_array_layers: 1,
+            },
+            TextureDimension::D2,
+            &texture_data,
+            TextureFormat::Rgba8UnormSrgb,
+        )
+    };
+
+    let cube_size = 0.1;
+    let cube_handle = meshes.add(Mesh::from(shape::Box::new(cube_size, cube_size, cube_size)));
+    let debug_material = materials.add(StandardMaterial {
+        base_color_texture: Some(images.add(uv_debug_texture)),
+        ..default()
+    });
+
     commands
         .spawn((
-            TransformBundle {
-                local: head_tf,
+            SpatialBundle {
+                transform: head_tf,
+                visibility: Visibility {is_visible: true},
                 ..default()
             },
             HeadMarker,
@@ -148,7 +231,30 @@ fn setup_webxr_pawn(
                 },
                 RightEyeMarker,
             ));
+        })
+        .with_children(|head| {
+            head.spawn((
+                Hand::Left,
+                PbrBundle {
+                    mesh: cube_handle.clone(),
+                    material: debug_material.clone(),
+                    visibility: Visibility { is_visible: true },
+                    ..default()
+                }
+            ));
+        })
+        .with_children(|head| {
+            head.spawn((
+                Hand::Right,
+                PbrBundle {
+                    mesh: cube_handle.clone(),
+                    material: debug_material.clone(),
+                    visibility: Visibility { is_visible: true },
+                    ..default()
+                }
+            ));
         });
+    bevy_log::info!("finished setup");
 }
 
 /// Resource that contains the `Uuid` corresponding to WebGlFramebuffer
@@ -323,7 +429,7 @@ pub fn create_view_from_device_framebuffer(
     })
 }
 
-#[derive(Component)]
+#[derive(Component, Debug)]
 pub struct HeadMarker;
 
 #[derive(Component)]
@@ -331,3 +437,9 @@ pub struct LeftEyeMarker;
 
 #[derive(Component)]
 pub struct RightEyeMarker;
+
+#[derive(Component, PartialEq, Eq, Debug)]
+pub enum Hand {
+    Left,
+    Right,
+}

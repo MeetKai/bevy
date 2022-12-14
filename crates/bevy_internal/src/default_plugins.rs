@@ -81,7 +81,7 @@ impl PluginGroup for DefaultPlugins {
         {
             group = group.add(bevy_webxr::WebXrPlugin::default());
         }
-        
+
         #[cfg(feature = "bevy_render")]
         {
             group = group

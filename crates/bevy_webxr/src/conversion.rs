@@ -102,10 +102,12 @@ impl XrFrom<web_sys::XrRigidTransform> for bevy_xr::interaction::XrRigidTransfor
 }
 
 impl XrFrom<web_sys::XrRigidTransform> for bevy_transform::components::Transform {
-    fn xr_from(rigid_transfrom: web_sys::XrRigidTransform) -> Self {
+    fn xr_from(rigid_transform: web_sys::XrRigidTransform) -> Self {
+        let mut rotation: bevy_math::Quat = rigid_transform.orientation().xr_into();
+        rotation.x *= -1.0;
         bevy_transform::components::Transform {
-            translation: rigid_transfrom.position().xr_into(),
-            rotation: rigid_transfrom.orientation().xr_into(),
+            translation: rigid_transform.position().xr_into(),
+            rotation,
             ..Default::default()
         }
     }
