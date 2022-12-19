@@ -5,7 +5,7 @@ use wasm_bindgen::JsCast;
 pub async fn initialize_webxr() -> InitializedState {
     let webxr_context = WebXrContext::get_context(
         bevy_xr::XrSessionMode::ImmersiveVR,
-        bevy_xr::XrReferenceSpaceType::Viewer,
+        bevy_xr::XrReferenceSpaceType::Local,
     )
     .await
     .unwrap();
