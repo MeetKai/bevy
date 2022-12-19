@@ -181,6 +181,7 @@ pub mod openxr {
 
 #[cfg(feature = "bevy_webxr")]
 pub mod webxr {
+    //! WebXR backend
     pub use bevy_webxr::*;
 }
 

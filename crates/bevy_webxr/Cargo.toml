@@ -23,6 +23,7 @@ bevy_render = {path ="../bevy_render",version = "0.9.0" }
 bevy_xr = { path = "../bevy_xr", version = "0.9.0" }
 bevy_core_pipeline = { path = "../bevy_core_pipeline", version = "0.9.0" }
 bevy_transform = { path = "../bevy_transform", version = "0.9.0" }
+bevy_hierarchy = { path = "../bevy_hierarchy", version = "0.9.0" }
 
 # other
 console_error_panic_hook = "0.1.7"
@@ -79,10 +80,3 @@ web-sys = { version = "0.3", features = [
     "XrWebGlLayerInit",
 ] }
 gloo-console = "0.2.3"
-
-[patch.crates-io]
-wgpu = { git = "https://github.com/expenses/wgpu", rev = "d1a9ad7801022d2b733746e9d13152ce2705519b" }
-wgpu-hal = { git = "https://github.com/expenses/wgpu", rev = "d1a9ad7801022d2b733746e9d13152ce2705519b" }
-wasm-bindgen = { git = "https://github.com/rustwasm/wasm-bindgen", rev = "a8695bb66c4d92cde4a1746a474084c58801a989" }
-web-sys = { git = "https://github.com/rustwasm/wasm-bindgen", rev = "a8695bb66c4d92cde4a1746a474084c58801a989" }
-js-sys = { git = "https://github.com/rustwasm/wasm-bindgen", rev = "a8695bb66c4d92cde4a1746a474084c58801a989" }

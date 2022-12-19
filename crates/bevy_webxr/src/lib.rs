@@ -1,3 +1,9 @@
+use crate::conversion::XrInto;
+use bevy_core_pipeline::{
+    clear_color::ClearColorConfig,
+    core_3d::{Camera3d, Camera3dBundle},
+};
+use bevy_hierarchy::BuildChildren;
 pub mod conversion;
 pub mod initialization;
 pub mod interaction;
@@ -5,15 +11,16 @@ pub mod webxr_context;
 
 use bevy_app::{App, Plugin};
 use bevy_ecs::{
-    prelude::World,
-    system::{Res, ResMut, Resource},
+    prelude::{Component, With, World},
+    system::{Commands, NonSend, Query, Res, ResMut, Resource},
 };
 use bevy_math::UVec2;
 use bevy_render::{
-    camera::ManualTextureViews,
+    camera::{Camera, ManualTextureViews, RenderTarget, Viewport},
     renderer::{RenderAdapterInfo, RenderDevice, RenderQueue},
 };
-use bevy_utils::Uuid;
+use bevy_transform::{prelude::Transform, TransformBundle};
+use bevy_utils::{default, Uuid};
 use initialization::InitializedState;
 use interaction::TrackingSource;
 use std::{cell::RefCell, rc::Rc, sync::Arc};
@@ -28,8 +35,120 @@ impl Plugin for WebXrPlugin {
     fn build(&self, app: &mut bevy_app::App) {
         app.set_runner(webxr_runner);
         setup(&mut app.world);
+        app.add_startup_system(setup_webxr_pawn);
+        app.add_system(sync_head_tf);
         app.add_system(update_manual_texture_views);
     }
+}
+
+fn sync_head_tf(
+    mut head_tf_q: Query<&mut Transform, With<HeadMarker>>,
+    xr_ctx: NonSend<WebXrContext>,
+    frame: NonSend<web_sys::XrFrame>,
+) {
+    let reference_space = &xr_ctx.space_info.0;
+    let viewer_pose = frame.get_viewer_pose(&reference_space).unwrap();
+    let head_tf = viewer_pose.transform().xr_into();
+
+    for mut tf in &mut head_tf_q {
+        bevy_log::info!("{:?}", head_tf);
+        *tf = head_tf;
+    }
+}
+
+fn setup_webxr_pawn(
+    xr_ctx: NonSend<WebXrContext>,
+    frame: NonSend<web_sys::XrFrame>,
+    id: Res<FramebufferUuid>,
+    mut commands: Commands,
+) {
+    let reference_space = &xr_ctx.space_info.0;
+    let viewer_pose = frame.get_viewer_pose(&reference_space).unwrap();
+
+    let head_tf = viewer_pose.transform().xr_into();
+
+    let views: Vec<web_sys::XrView> = viewer_pose
+        .views()
+        .iter()
+        .map(|view| view.unchecked_into::<web_sys::XrView>())
+        .collect();
+
+    let left_eye: &web_sys::XrView = views
+        .iter()
+        .find(|view| view.eye() == web_sys::XrEye::Left)
+        .unwrap();
+
+    let left_tf: Transform = left_eye.transform().xr_into();
+
+    let right_eye: &web_sys::XrView = views
+        .iter()
+        .find(|view| view.eye() == web_sys::XrEye::Right)
+        .unwrap();
+
+    let right_tf: Transform = right_eye.transform().xr_into();
+
+    let id = id.0;
+    let base_layer: web_sys::XrWebGlLayer = frame.session().render_state().base_layer().unwrap();
+
+    let resolution = UVec2::new(
+        base_layer.framebuffer_width(),
+        base_layer.framebuffer_height(),
+    );
+    let physical_size = UVec2::new(resolution.x / 2, resolution.y);
+
+    let left_viewport = Viewport {
+        physical_position: UVec2::ZERO,
+        physical_size,
+        ..default()
+    };
+
+    let right_viewport = Viewport {
+        physical_position: UVec2::new(resolution.x / 2, 0),
+        physical_size,
+        ..default()
+    };
+
+    commands
+        .spawn((
+            TransformBundle {
+                local: head_tf,
+                ..default()
+            },
+            HeadMarker,
+        ))
+        .with_children(|head| {
+            head.spawn((
+                Camera3dBundle {
+                    camera_3d: Camera3d { ..default() },
+                    camera: Camera {
+                        target: RenderTarget::TextureView(id),
+                        viewport: Some(left_viewport),
+                        ..default()
+                    },
+                    transform: left_tf,
+                    ..default()
+                },
+                LeftEyeMarker,
+            ));
+            head.spawn((
+                Camera3dBundle {
+                    camera_3d: Camera3d {
+                        //Viewport does not affect ClearColor, so we set the right camera to a None Clear Color
+                        clear_color: ClearColorConfig::None,
+                        ..default()
+                    },
+                    camera: Camera {
+                        target: RenderTarget::TextureView(id),
+                        priority: 1,
+                        viewport: Some(right_viewport),
+                        ..default()
+                    },
+                    transform: right_tf,
+                    ..default()
+                },
+                RightEyeMarker,
+            ));
+        });
 }
 
 /// Resource that contains the `Uuid` corresponding to WebGlFramebuffer
@@ -160,6 +279,7 @@ fn webxr_runner(mut app: App) {
     session.request_animation_frame(g.borrow().as_ref().unwrap().as_ref().unchecked_ref());
 }
 
+#[cfg(target_arch = "wasm32")]
 pub fn create_view_from_device_framebuffer(
     device: &wgpu::Device,
     framebuffer: web_sys::WebGlFramebuffer,
@@ -203,3 +323,12 @@ pub fn create_view_from_device_framebuffer(
         )
     })
 }
+
+#[derive(Component)]
+pub struct HeadMarker;
+
+#[derive(Component)]
+pub struct LeftEyeMarker;
+
+#[derive(Component)]
+pub struct RightEyeMarker;

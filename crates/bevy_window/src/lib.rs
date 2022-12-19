@@ -23,7 +23,7 @@ pub mod prelude {
 }
 
 use bevy_app::prelude::*;
-use bevy_ecs::event::Events;
+
 use bevy_ecs::schedule::{IntoSystemDescriptor, SystemLabel};
 
 impl Default for WindowPlugin {
