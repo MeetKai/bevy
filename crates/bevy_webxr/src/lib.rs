@@ -20,8 +20,8 @@ use bevy_pbr::{PbrBundle, StandardMaterial};
 use bevy_render::prelude::*;
 use bevy_render::{
     camera::{Camera, ManualTextureViews, RenderTarget, Viewport},
-    renderer::{RenderAdapterInfo, RenderDevice, RenderQueue},
     render_resource::{Extent3d, TextureDimension, TextureFormat},
+    renderer::{RenderAdapterInfo, RenderDevice, RenderQueue},
     view::Visibility,
 };
 use bevy_transform::{prelude::Transform, TransformBundle};
@@ -58,7 +58,7 @@ fn sync_head_tf(
     let head_tf = viewer_pose.transform().xr_into();
 
     for mut tf in &mut head_tf_q {
-        // bevy_log::info!("head transform {:?}", head_tf);
+        bevy_log::info!("head transform {:?}", head_tf);
         *tf = head_tf;
     }
 }
@@ -77,13 +77,17 @@ fn sync_hands_tf(
         let hand_pose = frame
             .get_pose(&is.grip_space().unwrap(), reference_space)
             .unwrap();
-        let hand_tf: bevy_transform::components::Transform  = hand_pose.transform().xr_into();
+        let hand_tf: bevy_transform::components::Transform = hand_pose.transform().xr_into();
 
         for (hand, mut tf) in hands_tf_q.iter_mut().filter(|h| h.0 == &Hand::Left) {
             *tf = Transform {
-                translation: bevy_math::Vec3::new(hand_tf.translation.x, - hand_tf.translation.y, hand_tf.translation.z),
+                translation: bevy_math::Vec3::new(
+                    hand_tf.translation.x,
+                    hand_tf.translation.y,
+                    hand_tf.translation.z,
+                ),
                 rotation: hand_tf.rotation,
-                scale: hand_tf.scale
+                scale: hand_tf.scale,
             };
             // *tf = hand_tf;
             // tf.translation *= 10.0;
@@ -97,13 +101,17 @@ fn sync_hands_tf(
             .get_pose(&is.grip_space().unwrap(), reference_space)
             .unwrap();
         // let hand_tf = hand_pose.transform().xr_into();
-        let hand_tf: bevy_transform::components::Transform  = hand_pose.transform().xr_into();
+        let hand_tf: bevy_transform::components::Transform = hand_pose.transform().xr_into();
 
         for (hand, mut tf) in hands_tf_q.iter_mut().filter(|h| h.0 == &Hand::Right) {
             *tf = Transform {
-                translation: bevy_math::Vec3::new(hand_tf.translation.x, - hand_tf.translation.y, hand_tf.translation.z),
+                translation: bevy_math::Vec3::new(
+                    hand_tf.translation.x,
+                    -hand_tf.translation.y,
+                    hand_tf.translation.z,
+                ),
                 rotation: hand_tf.rotation,
-                scale: hand_tf.scale
+                scale: hand_tf.scale,
             };
             // *tf = hand_tf;
             // tf.translation *= 10.0;
@@ -208,7 +216,7 @@ fn setup_webxr_pawn(
         .spawn((
             SpatialBundle {
                 transform: head_tf,
-                visibility: Visibility {is_visible: true},
+                visibility: Visibility { is_visible: true },
                 ..default()
             },
             HeadMarker,
@@ -246,48 +254,48 @@ fn setup_webxr_pawn(
                 RightEyeMarker,
             ));
         });
-        
-        commands.spawn((
-            Hand::Left,
-            PbrBundle {
-                mesh: cube_handle.clone(),
-                material: debug_material.clone(),
-                visibility: Visibility { is_visible: true },
-                ..default()
-            }
-        ));
-        
-        commands.spawn((
-            Hand::Right,
-            PbrBundle {
-                mesh: cube_handle.clone(),
-                material: debug_material.clone(),
-                visibility: Visibility { is_visible: true },
-                ..default()
-            }
-        ));
-        // .with_children(|head| {
-        //     head.spawn((
-        //         Hand::Left,
-        //         PbrBundle {
-        //             mesh: cube_handle.clone(),
-        //             material: debug_material.clone(),
-        //             visibility: Visibility { is_visible: true },
-        //             ..default()
-        //         }
-        //     ));
-        // })
-        // .with_children(|head| {
-        //     head.spawn((
-        //         Hand::Right,
-        //         PbrBundle {
-        //             mesh: cube_handle.clone(),
-        //             material: debug_material.clone(),
-        //             visibility: Visibility { is_visible: true },
-        //             ..default()
-        //         }
-        //     ));
-        // });
+
+    commands.spawn((
+        Hand::Left,
+        PbrBundle {
+            mesh: cube_handle.clone(),
+            material: debug_material.clone(),
+            visibility: Visibility { is_visible: true },
+            ..default()
+        },
+    ));
+
+    commands.spawn((
+        Hand::Right,
+        PbrBundle {
+            mesh: cube_handle.clone(),
+            material: debug_material.clone(),
+            visibility: Visibility { is_visible: true },
+            ..default()
+        },
+    ));
+    // .with_children(|head| {
+    //     head.spawn((
+    //         Hand::Left,
+    //         PbrBundle {
+    //             mesh: cube_handle.clone(),
+    //             material: debug_material.clone(),
+    //             visibility: Visibility { is_visible: true },
+    //             ..default()
+    //         }
+    //     ));
+    // })
+    // .with_children(|head| {
+    //     head.spawn((
+    //         Hand::Right,
+    //         PbrBundle {
+    //             mesh: cube_handle.clone(),
+    //             material: debug_material.clone(),
+    //             visibility: Visibility { is_visible: true },
+    //             ..default()
+    //         }
+    //     ));
+    // });
     bevy_log::info!("finished setup");
 }
 
