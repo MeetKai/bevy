@@ -19,10 +19,9 @@ use bevy_render::{
     camera::{Camera, ManualTextureViews, RenderTarget, Viewport},
     renderer::{RenderAdapterInfo, RenderDevice, RenderQueue},
 };
-use bevy_transform::{prelude::Transform, TransformBundle};
+use bevy_transform::prelude::{Transform, TransformBundle};
 use bevy_utils::{default, Uuid};
 use initialization::InitializedState;
-use interaction::TrackingSource;
 use std::{cell::RefCell, rc::Rc, sync::Arc};
 use wasm_bindgen::{prelude::Closure, JsCast};
 use web_sys::XrWebGlLayer;
@@ -48,10 +47,11 @@ fn sync_head_tf(
 ) {
     let reference_space = &xr_ctx.space_info.0;
     let viewer_pose = frame.get_viewer_pose(&reference_space).unwrap();
+    // bevy_log::info!("head transform before {:?}", viewer_pose.transform().position().y());
     let head_tf = viewer_pose.transform().xr_into();
 
     for mut tf in &mut head_tf_q {
-        bevy_log::info!("{:?}", head_tf);
+        bevy_log::info!("head transform {:?}", head_tf);
         *tf = head_tf;
     }
 }
@@ -149,6 +149,8 @@ fn setup_webxr_pawn(
                 RightEyeMarker,
             ));
         });
+
+    bevy_log::info!("finished setup");
 }
 
 /// Resource that contains the `Uuid` corresponding to WebGlFramebuffer
@@ -262,15 +264,6 @@ fn webxr_runner(mut app: App) {
     *g.borrow_mut() = Some(Closure::new(move |_time: f64, frame: web_sys::XrFrame| {
         app.world.insert_non_send_resource(frame.clone());
 
-        let webxr_context = app.world.get_non_send_resource::<WebXrContext>().unwrap();
-
-        let (space, space_type) = webxr_context.space_info.clone();
-        // update the current frame inside tracking soource
-        let tracking_source = TrackingSource::new(space, space_type, frame.clone());
-        // Resource used to track poses
-        app.world
-            .insert_resource(bevy_xr::XrTrackingSource::new(Box::new(tracking_source)));
-
         app.update();
 
         let session = frame.session();
@@ -324,7 +317,7 @@ pub fn create_view_from_device_framebuffer(
     })
 }
 
-#[derive(Component)]
+#[derive(Component, Debug)]
 pub struct HeadMarker;
 
 #[derive(Component)]
