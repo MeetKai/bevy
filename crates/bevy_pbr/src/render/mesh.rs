@@ -668,7 +668,7 @@ impl SpecializedMeshPipeline for MeshPipeline {
             }),
             layout: Some(bind_group_layout),
             primitive: PrimitiveState {
-                front_face: FrontFace::Ccw,
+                front_face: FrontFace::Cw,
                 cull_mode: Some(Face::Back),
                 unclipped_depth: false,
                 polygon_mode: PolygonMode::Fill,

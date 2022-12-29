@@ -347,7 +347,7 @@ impl SpecializedMeshPipeline for ShadowPipeline {
             primitive: PrimitiveState {
                 topology: key.primitive_topology(),
                 strip_index_format: None,
-                front_face: FrontFace::Ccw,
+                front_face: FrontFace::Cw,
                 cull_mode: None,
                 unclipped_depth: false,
                 polygon_mode: PolygonMode::Fill,
