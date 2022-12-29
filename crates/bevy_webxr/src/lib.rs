@@ -2,6 +2,7 @@ use crate::conversion::XrInto;
 use bevy_core_pipeline::{
     clear_color::ClearColorConfig,
     core_3d::{Camera3d, Camera3dBundle},
+    tonemapping::Tonemapping,
 };
 use bevy_hierarchy::BuildChildren;
 pub mod conversion;
@@ -11,15 +12,21 @@ pub mod webxr_context;
 
 use bevy_app::{App, Plugin};
 use bevy_ecs::{
-    prelude::{Component, With, World},
+    prelude::*,
     system::{Commands, NonSend, Query, Res, ResMut, Resource},
 };
-use bevy_math::UVec2;
+use bevy_math::{Mat4, UVec2};
+use bevy_reflect::prelude::*;
 use bevy_render::{
-    camera::{Camera, ManualTextureViews, RenderTarget, Viewport},
+    camera::{
+        Camera, CameraProjection, CameraProjectionPlugin, CameraRenderGraph, ManualTextureViews,
+        RenderTarget, Viewport,
+    },
+    primitives::Frustum,
     renderer::{RenderAdapterInfo, RenderDevice, RenderQueue},
+    view::VisibleEntities,
 };
-use bevy_transform::prelude::{Transform, TransformBundle};
+use bevy_transform::prelude::{GlobalTransform, Transform, TransformBundle};
 use bevy_utils::{default, Uuid};
 use initialization::InitializedState;
 use std::{cell::RefCell, rc::Rc, sync::Arc};
@@ -32,6 +39,7 @@ pub struct WebXrPlugin;
 
 impl Plugin for WebXrPlugin {
     fn build(&self, app: &mut bevy_app::App) {
+        app.add_plugin(CameraProjectionPlugin::<WebXrPerspectiveProjection>::default());
         app.set_runner(webxr_runner);
         setup(&mut app.world);
         app.add_startup_system(setup_webxr_pawn);
@@ -53,6 +61,66 @@ fn sync_head_tf(
     for mut tf in &mut head_tf_q {
         bevy_log::info!("head transform {:?}", head_tf);
         *tf = head_tf;
+    }
+}
+
+/// A 3D camera projection in which distant objects appear smaller than close objects.
+#[derive(Component, Debug, Clone, Reflect)]
+#[reflect(Component, Default)]
+pub struct WebXrPerspectiveProjection {
+    /// The vertical field of view (FOV) in radians.
+    ///
+    /// Defaults to a value of π/4 radians or 45 degrees.
+    pub fov: f32,
+
+    /// The aspect ratio (width divided by height) of the viewing frustum.
+    ///
+    /// Bevy's [`camera_system`](crate::camera::camera_system) automatically
+    /// updates this value when the aspect ratio of the associated window changes.
+    ///
+    /// Defaults to a value of `1.0`.
+    pub aspect_ratio: f32,
+
+    /// The distance from the camera in world units of the viewing frustum's near plane.
+    ///
+    /// Objects closer to the camera than this value will not be visible.
+    ///
+    /// Defaults to a value of `0.1`.
+    pub near: f32,
+
+    /// The distance from the camera in world units of the viewing frustum's far plane.
+    ///
+    /// Objects farther from the camera than this value will not be visible.
+    ///
+    /// Defaults to a value of `1000.0`.
+    pub far: f32,
+}
+
+impl CameraProjection for WebXrPerspectiveProjection {
+    fn get_projection_matrix(&self) -> Mat4 {
+        let mut mat = Mat4::perspective_infinite_reverse_rh(self.fov, self.aspect_ratio, self.near);
+        mat.y_axis.y = -mat.y_axis.y;
+        mat.y_axis.w = -mat.y_axis.w;
+        mat
+    }
+
+    fn update(&mut self, width: f32, height: f32) {
+        self.aspect_ratio = width / height;
+    }
+
+    fn far(&self) -> f32 {
+        self.far
+    }
+}
+
+impl Default for WebXrPerspectiveProjection {
+    fn default() -> Self {
+        WebXrPerspectiveProjection {
+            fov: std::f32::consts::PI / 4.0,
+            near: 0.1,
+            far: 1000.0,
+            aspect_ratio: 1.0,
+        }
     }
 }
 
@@ -87,6 +155,29 @@ fn setup_webxr_pawn(
 
     let right_tf: Transform = right_eye.transform().xr_into();
 
+    let left_projection = WebXrPerspectiveProjection::default();
+
+    let left_view_projection =
+        left_projection.get_projection_matrix() * left_tf.compute_matrix().inverse();
+
+    let left_frustum = Frustum::from_view_projection(
+        &left_view_projection,
+        &right_tf.translation,
+        &right_tf.back(),
+        left_projection.far,
+    );
+
+    let right_projection = WebXrPerspectiveProjection::default();
+
+    let right_view_projection =
+        right_projection.get_projection_matrix() * right_tf.compute_matrix().inverse();
+
+    let right_frustum = Frustum::from_view_projection(
+        &right_view_projection,
+        &right_tf.translation,
+        &right_tf.back(),
+        right_projection.far,
+    );
     let id = id.0;
     let base_layer: web_sys::XrWebGlLayer = frame.session().render_state().base_layer().unwrap();
 
@@ -118,36 +209,64 @@ fn setup_webxr_pawn(
         ))
         .with_children(|head| {
             head.spawn((
-                Camera3dBundle {
-                    camera_3d: Camera3d { ..default() },
-                    camera: Camera {
-                        target: RenderTarget::TextureView(id),
-                        viewport: Some(left_viewport),
-                        ..default()
-                    },
-                    transform: left_tf,
+                CameraRenderGraph::new(bevy_core_pipeline::core_3d::graph::NAME),
+                Tonemapping::Enabled {
+                    deband_dither: true,
+                },
+                Camera {
+                    target: RenderTarget::TextureView(id),
+                    viewport: Some(left_viewport),
                     ..default()
                 },
+                left_projection,
+                VisibleEntities::default(),
+                left_frustum,
+                left_tf,
+                GlobalTransform::default(),
+                Camera3d::default(),
                 LeftEyeMarker,
             ));
             head.spawn((
-                Camera3dBundle {
-                    camera_3d: Camera3d {
-                        //Viewport does not affect ClearColor, so we set the right camera to a None Clear Color
-                        clear_color: ClearColorConfig::None,
-                        ..default()
-                    },
-                    camera: Camera {
-                        target: RenderTarget::TextureView(id),
-                        priority: 1,
-                        viewport: Some(right_viewport),
-                        ..default()
-                    },
-                    transform: right_tf,
+                CameraRenderGraph::new(bevy_core_pipeline::core_3d::graph::NAME),
+                Tonemapping::Enabled {
+                    deband_dither: true,
+                },
+                Camera {
+                    target: RenderTarget::TextureView(id),
+                    priority: 1,
+                    viewport: Some(right_viewport),
                     ..default()
                 },
+                right_projection,
+                VisibleEntities::default(),
+                right_frustum,
+                right_tf,
+                Camera3d {
+                    //Viewport does not affect ClearColor, so we set the right camera to a None Clear Color
+                    clear_color: ClearColorConfig::None,
+                    ..default()
+                },
+                GlobalTransform::default(),
                 RightEyeMarker,
             ));
+            // head.spawn((
+            //     Camera3dBundle {
+            //         camera_3d: Camera3d {
+            //             //Viewport does not affect ClearColor, so we set the right camera to a None Clear Color
+            //             clear_color: ClearColorConfig::None,
+            //             ..default()
+            //         },
+            //         camera: Camera {
+            //             target: RenderTarget::TextureView(id),
+            //             priority: 1,
+            // viewport: Some(right_viewport),
+            //             ..default()
+            //         },
+            //         transform: right_tf,
+            //         ..default()
+            //     },
+            //     RightEyeMarker,
+            // ));
         });
 
     bevy_log::info!("finished setup");
