@@ -50,3 +50,14 @@ impl XrFrom<web_sys::XrInputSourceArray> for Vec<web_sys::XrInputSource> {
         output
     }
 }
+
+impl XrFrom<web_sys::XrHandedness> for String {
+    fn xr_from(handedness: web_sys::XrHandedness) -> Self {
+        match handedness {
+            web_sys::XrHandedness::None => "none".into(),
+            web_sys::XrHandedness::Left => "left".into(),
+            web_sys::XrHandedness::Right => "right".into(),
+            _ => "error".into(),
+        }
+    }
+}
