@@ -1,4 +1,4 @@
-use std::{marker::PhantomData, ops::Deref};
+use std::{ops::Deref};
 
 use crate::{
     camera::CameraProjection,
@@ -23,8 +23,8 @@ use bevy_math::{Mat4, UVec2, Vec2, Vec3};
 use bevy_math::{Ray, UVec4};
 use bevy_reflect::prelude::*;
 use bevy_reflect::FromReflect;
-use bevy_reflect::{prelude::*, Uuid};
-use bevy_render_macros::ExtractResource;
+use bevy_reflect::{Uuid};
+
 use bevy_transform::components::GlobalTransform;
 use bevy_utils::{HashMap, HashSet};
 use bevy_window::{WindowCreated, WindowId, WindowResized, Windows};

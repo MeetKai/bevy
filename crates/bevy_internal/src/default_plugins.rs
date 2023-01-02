@@ -1,5 +1,4 @@
 use bevy_app::{PluginGroup, PluginGroupBuilder};
-use bevy_window::WindowDescriptor;
 
 /// This plugin group will add all the default plugins:
 /// * [`LogPlugin`](bevy_log::LogPlugin)
@@ -23,6 +22,7 @@ use bevy_window::WindowDescriptor;
 /// * [`WinitPlugin`](bevy_winit::WinitPlugin) - with feature `bevy_winit`
 /// * [`XrPlugin`] - with feature `bevy_xr`
 /// * [`OpenXrPlugin`] - with feature `bevy_openxr`
+/// * [`WebXrPlugin`] - with feature `bevy_webxr`
 ///
 /// See also [`MinimalPlugins`] for a slimmed down option
 pub struct DefaultPlugins;
@@ -43,6 +43,7 @@ impl PluginGroup for DefaultPlugins {
         }
         #[cfg(feature = "bevy_xr")]
         {
+            use bevy_window::WindowDescriptor;
             group = group.add(bevy_window::WindowPlugin {
                 window: WindowDescriptor::default(),
                 add_primary_window: false,
@@ -81,7 +82,7 @@ impl PluginGroup for DefaultPlugins {
         {
             group = group.add(bevy_webxr::WebXrPlugin::default());
         }
-        
+
         #[cfg(feature = "bevy_render")]
         {
             group = group
