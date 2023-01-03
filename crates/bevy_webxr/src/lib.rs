@@ -15,6 +15,7 @@ use bevy_ecs::{
     prelude::*,
     system::{Commands, NonSend, Query, Res, ResMut, Resource},
 };
+use bevy_log::info;
 use bevy_math::{Mat4, UVec2};
 use bevy_reflect::prelude::*;
 use bevy_render::{
@@ -125,6 +126,26 @@ impl Default for WebXrPerspectiveProjection {
         }
     }
 }
+// pub fn perspective_infinite_reverse_rh(
+//     fov_y_radians: f32,
+//     aspect_ratio: f32,
+//     z_near: f32,
+// ) -> Self {
+//     glam_assert!(z_near > 0.0);
+//     let f = 1.0 / (0.5 * fov_y_radians).tan();
+//     Self::from_cols(
+//         Vec4::new(f / aspect_ratio, 0.0, 0.0, 0.0),
+//         Vec4::new(0.0, f, 0.0, 0.0),
+//         Vec4::new(0.0, 0.0, 0.0, -1.0),
+//         Vec4::new(0.0, 0.0, z_near, 0.0),
+//     )
+// }
+
+pub fn fov_from_mat4(mat: Mat4) -> f32 {
+    let f = mat.y_axis.y;
+    let fov_y_radians = 1.0 / (0.5 * f.atan());
+    fov_y_radians
+}
 
 fn setup_webxr_pawn(
     xr_ctx: NonSend<WebXrContext>,
@@ -148,6 +169,12 @@ fn setup_webxr_pawn(
         .find(|view| view.eye() == web_sys::XrEye::Left)
         .unwrap();
     let left_eye_mat: Mat4 = left_eye.projection_matrix().xr_into();
+
+    let left_proj: Mat4 = left_eye.projection_matrix().xr_into();
+
+    let fov = fov_from_mat4(left_proj);
+
+    info!("fov:{:?} deg", fov.to_degrees());
 
     let left_tf: Transform = left_eye.transform().xr_into();
 

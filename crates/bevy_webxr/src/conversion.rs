@@ -22,8 +22,8 @@ where
 // XR Conversion Impls
 
 impl XrFrom<Vec<f32>> for bevy_math::Mat4 {
-    fn xr_from(cols: Vec<f32>) -> Self {
-        bevy_math::Mat4::from_cols_array(&cols.try_into().unwrap())
+    fn xr_from(cols_vec: Vec<f32>) -> Self {
+        bevy_math::Mat4::from_cols_slice(&cols_vec)
     }
 }
 
