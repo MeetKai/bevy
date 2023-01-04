@@ -14,7 +14,7 @@ use bevy_ecs::{
     prelude::{Component, With, World},
     system::{Commands, NonSend, Query, Res, ResMut, Resource},
 };
-use bevy_log::info;
+
 use bevy_math::UVec2;
 use bevy_render::{
     camera::{Camera, ManualTextureViews, RenderTarget, Viewport},
@@ -22,12 +22,11 @@ use bevy_render::{
 };
 use bevy_transform::prelude::{Transform, TransformBundle};
 use bevy_utils::{default, Uuid};
-use bevy_xr::{XrActionSet, XrProfileDescriptor, XrSessionMode, XrSystem};
-use conversion::XrFrom;
+use bevy_xr::{XrActionSet, XrSessionMode, XrSystem};
 use initialization::InitializedState;
 use std::{cell::RefCell, rc::Rc, sync::Arc};
-use wasm_bindgen::{prelude::Closure, JsCast, JsValue};
-use web_sys::{XrInputSource, XrInputSourceEvent, XrInputSourcesChangeEvent, XrWebGlLayer};
+use wasm_bindgen::{prelude::Closure, JsCast};
+use web_sys::XrWebGlLayer;
 use webxr_context::*;
 
 use crate::interaction::input::{handle_input, setup_interaction};
@@ -273,7 +272,6 @@ fn webxr_runner(mut app: App) {
     println!("inserted XrSystem");
 
     *g.borrow_mut() = Some(Closure::new(move |_time: f64, frame: web_sys::XrFrame| {
-        let xr_system = &mut app.world.get_resource_mut::<XrSystem>().unwrap();
         setup_interaction(&frame, &mut app.world);
         let action_set = &mut app.world.get_resource_mut::<XrActionSet>().unwrap();
         handle_input(action_set, &frame);

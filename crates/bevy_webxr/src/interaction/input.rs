@@ -69,7 +69,10 @@ pub fn handle_input(action_set: &mut Mut<XrActionSet>, frame: &web_sys::XrFrame)
         for (index, button) in layout.gamepad.buttons.iter().enumerate() {
             let button = match button {
                 Some(b) => b,
-                None => continue,
+                None => {
+                    warn!("Button does not exist");
+                    continue;
+                }
             };
 
             let js_button = gamepad.buttons().get(index as u32);
