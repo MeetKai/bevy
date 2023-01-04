@@ -6,7 +6,7 @@ use bevy_transform::prelude::Transform;
 use parking_lot::RwLock;
 use std::{collections::VecDeque, fmt};
 
-/// Use this [`Resource`] to play audio.
+/// Use this [`Resource`] to play audio
 ///
 /// ```
 /// # use bevy_ecs::system::Res;
