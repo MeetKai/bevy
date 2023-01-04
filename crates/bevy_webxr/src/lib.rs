@@ -15,7 +15,6 @@ use bevy_ecs::{
     prelude::*,
     system::{Commands, NonSend, Query, Res, ResMut, Resource},
 };
-
 use bevy_log::info;
 use bevy_math::{Mat4, UVec2};
 use bevy_reflect::prelude::*;
