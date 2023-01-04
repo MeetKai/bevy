@@ -73,11 +73,11 @@ fn sync_head_tf(
 #[derive(Component, Debug, Clone, Reflect)]
 #[reflect(Component, Default)]
 pub struct WebXrPerspectiveProjection {
-    mat: Mat4,
+    // mat: Mat4,
     // /// The vertical field of view (FOV) in radians.
     // ///
     // /// Defaults to a value of π/4 radians or 45 degrees.
-    // pub fov: f32,
+    pub fov: f32,
 
     // /// The aspect ratio (width divided by height) of the viewing frustum.
     // ///
@@ -85,14 +85,14 @@ pub struct WebXrPerspectiveProjection {
     // /// updates this value when the aspect ratio of the associated window changes.
     // ///
     // /// Defaults to a value of `1.0`.
-    // pub aspect_ratio: f32,
+    pub aspect_ratio: f32,
 
     // /// The distance from the camera in world units of the viewing frustum's near plane.
     // ///
     // /// Objects closer to the camera than this value will not be visible.
     // ///
     // /// Defaults to a value of `0.1`.
-    // pub near: f32,
+    pub near: f32,
     /// The distance from the camera in world units of the viewing frustum's far plane.
     ///
     /// Objects farther from the camera than this value will not be visible.
@@ -103,15 +103,15 @@ pub struct WebXrPerspectiveProjection {
 
 impl CameraProjection for WebXrPerspectiveProjection {
     fn get_projection_matrix(&self) -> Mat4 {
-        // let mut mat = Mat4::perspective_infinite_reverse_rh(self.fov, self.aspect_ratio, self.near);
-        let mut mat = self.mat;
+        let mut mat = Mat4::perspective_infinite_reverse_rh(self.fov, self.aspect_ratio, self.near);
+        // let mut mat = self.mat;
         mat.y_axis.y = -mat.y_axis.y;
         mat.y_axis.w = -mat.y_axis.w;
         mat
     }
 
     fn update(&mut self, width: f32, height: f32) {
-        // self.aspect_ratio = width / height;
+        self.aspect_ratio = width / height;
     }
 
     fn far(&self) -> f32 {
@@ -121,12 +121,13 @@ impl CameraProjection for WebXrPerspectiveProjection {
 
 impl Default for WebXrPerspectiveProjection {
     fn default() -> Self {
-        let mat = Mat4::perspective_infinite_reverse_rh(std::f32::consts::PI / 4.0, 1.0, 0.1);
+        // let mat = Mat4::perspective_infinite_reverse_rh(std::f32::consts::PI / 4.0, 1.0, 0.1);
 
         WebXrPerspectiveProjection {
-            mat,
+            fov: 90.0_f32.to_radians(),
+            aspect_ratio: 1.0,
+            near: 0.01,
             far: 1000.0,
-            // aspect_ratio: 1.0,
         }
     }
 }
@@ -147,7 +148,7 @@ impl Default for WebXrPerspectiveProjection {
 
 pub fn fov_from_mat4(mat: Mat4) -> f32 {
     let f = mat.y_axis.y;
-    let fov_y_radians = 1.0 / (0.5 * f.atan());
+    let fov_y_radians = 2.0 * (1.0 / f).atan();
     fov_y_radians
 }
 
@@ -172,7 +173,7 @@ fn setup_webxr_pawn(
         .iter()
         .find(|view| view.eye() == web_sys::XrEye::Left)
         .unwrap();
-    let left_eye_mat: Mat4 = left_eye.projection_matrix().xr_into();
+    // let left_eye_mat: Mat4 = left_eye.projection_matrix().xr_into();
 
     let left_proj: Mat4 = left_eye.projection_matrix().xr_into();
 
@@ -186,13 +187,14 @@ fn setup_webxr_pawn(
         .iter()
         .find(|view| view.eye() == web_sys::XrEye::Right)
         .unwrap();
-    let right_eye_mat = right_eye.projection_matrix().xr_into();
+    // let right_eye_mat = right_eye.projection_matrix().xr_into();
 
     let right_tf: Transform = right_eye.transform().xr_into();
 
     let left_projection = WebXrPerspectiveProjection {
-        mat: left_eye_mat,
+        fov,
         far: 1000.0,
+        ..default()
     };
 
     let left_view_projection =
@@ -206,8 +208,9 @@ fn setup_webxr_pawn(
     );
 
     let right_projection = WebXrPerspectiveProjection {
-        mat: right_eye_mat,
+        fov,
         far: 1000.0,
+        ..default()
     };
 
     let right_view_projection =
