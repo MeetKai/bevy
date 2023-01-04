@@ -32,20 +32,20 @@ impl WebXrContext {
             return Err("XrSessionMode not supported.".into());
         }
 
-        let required_features = Array::new();
-        required_features.set(0, JsValue::from("local-floor".to_string()));
+        // let required_features = Array::new();
+        // required_features.set(0, JsValue::from("local-floor".to_string()));
 
         let session = JsFuture::from(
-            // xr_system.request_session(mode),
-            xr_system.request_session_with_options(
-                mode,
-                web_sys::XrSessionInit::new()
-                    .required_features(
-                        &JsValue::from(
-                            required_features
-                        )
-                    )
-            )
+            xr_system.request_session(mode),
+            // xr_system.request_session_with_options(
+            //     mode,
+            //     web_sys::XrSessionInit::new()
+            //         .required_features(
+            //             &JsValue::from(
+            //                 required_features
+            //             )
+            //         )
+            // )
         )
         .await?
         .dyn_into::<web_sys::XrSession>()?;
