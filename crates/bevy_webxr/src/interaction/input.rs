@@ -2,27 +2,19 @@ use std::collections::HashMap;
 
 use bevy_ecs::world::{Mut, World};
 
-use bevy_log::warn;
+use bevy_log::{info, warn};
 use bevy_math::Vec2;
 use bevy_xr::{
     XrActionDescriptor, XrActionSet, XrActionState, XrActionType, XrButtonState,
     XrProfileDescriptor, XrSessionMode, XrSystem,
 };
-use gloo_utils::format::JsValueSerdeExt;
-use serde::Deserialize;
+
 use wasm_bindgen::JsValue;
 use web_sys::XrHandedness;
 
 use crate::{conversion::XrInto, interaction::profiles::OCULUS_TOUCH_PROFILE};
 
 use super::profiles::{WebXRComponentType, WebXRProfile};
-
-#[derive(Deserialize, Debug)]
-struct JsGamepadButtons {
-    pressed: bool,
-    touched: bool,
-    value: f32,
-}
 
 pub fn setup_interaction(frame: &web_sys::XrFrame, world: &mut World) {
     let mut xr_system = match world.get_resource_mut::<XrSystem>() {
@@ -79,14 +71,29 @@ pub fn handle_input(action_set: &mut Mut<XrActionSet>, frame: &web_sys::XrFrame)
                 Some(b) => b,
                 None => continue,
             };
-            let button_value: JsGamepadButtons =
-                match gamepad.buttons().get(index as u32).into_serde() {
-                    Ok(b) => b,
-                    Err(_) => continue,
-                };
-            let state = match (button_value.pressed, button_value.touched) {
-                (true, _) => XrButtonState::Pressed,
-                (false, true) => XrButtonState::Touched,
+
+            let js_button = gamepad.buttons().get(index as u32);
+            use js_sys::Reflect;
+            let value = Reflect::get(&js_button, &JsValue::from_str("value"))
+                .map(|v| v.as_f64())
+                .map(|x| x.map(|x| x as f32))
+                .unwrap_or(None);
+
+            let pressed = Reflect::get(&js_button, &JsValue::from_str("pressed"))
+                .map(|v| v.as_bool())
+                .unwrap_or(None);
+
+            let touched = Reflect::get(&js_button, &JsValue::from_str("touched"))
+                .map(|v| v.as_bool())
+                .unwrap_or(None);
+
+            if button == "xr-standard-trigger" && handedness_string == "right" {
+                info!("{:?}", value.clone());
+            }
+
+            let state = match (pressed, touched) {
+                (Some(true), _) => XrButtonState::Pressed,
+                (Some(false), Some(true)) => XrButtonState::Touched,
                 (_, _) => XrButtonState::Default,
             };
 
@@ -94,7 +101,7 @@ pub fn handle_input(action_set: &mut Mut<XrActionSet>, frame: &web_sys::XrFrame)
                 format!("{}/{}", handedness_string, button),
                 bevy_xr::XrActionState::Button {
                     state,
-                    value: button_value.value,
+                    value: value.unwrap_or(-1.0),
                 },
             );
         }
