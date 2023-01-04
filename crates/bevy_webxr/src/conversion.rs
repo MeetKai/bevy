@@ -50,6 +50,27 @@ impl XrFrom<bevy_xr::XrSessionMode> for web_sys::XrSessionMode {
     }
 }
 
+impl XrFrom<web_sys::XrInputSourceArray> for Vec<web_sys::XrInputSource> {
+    fn xr_from(sources: web_sys::XrInputSourceArray) -> Self {
+        let mut output = Vec::new();
+        for index in 0..sources.length() {
+            output.push(sources.get(index).unwrap());
+        }
+        output
+    }
+}
+
+impl XrFrom<web_sys::XrHandedness> for String {
+    fn xr_from(handedness: web_sys::XrHandedness) -> Self {
+        match handedness {
+            web_sys::XrHandedness::None => "none".into(),
+            web_sys::XrHandedness::Left => "left".into(),
+            web_sys::XrHandedness::Right => "right".into(),
+            _ => "error".into(),
+        }
+    }
+}
+
 impl XrFrom<web_sys::XrReferenceSpaceType> for bevy_xr::interaction::XrReferenceSpaceType {
     fn xr_from(rf_space_type: web_sys::XrReferenceSpaceType) -> Self {
         match rf_space_type {

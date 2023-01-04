@@ -29,11 +29,14 @@ use bevy_render::{
 };
 use bevy_transform::prelude::{GlobalTransform, Transform, TransformBundle};
 use bevy_utils::{default, Uuid};
+use bevy_xr::{XrActionSet, XrSessionMode, XrSystem};
 use initialization::InitializedState;
 use std::{cell::RefCell, rc::Rc, sync::Arc};
 use wasm_bindgen::{prelude::Closure, JsCast};
 use web_sys::XrWebGlLayer;
 use webxr_context::*;
+
+use crate::interaction::input::{handle_input, setup_interaction};
 
 #[derive(Default)]
 pub struct WebXrPlugin;
@@ -369,6 +372,7 @@ fn setup(world: &mut World) {
         .session
         .update_render_state_with_state(&render_state_init);
 
+    world.init_resource::<XrActionSet>();
     world.insert_resource(RenderDevice::from(Arc::new(device)));
     world.insert_resource(RenderQueue(Arc::new(queue)));
     world.insert_resource(RenderAdapterInfo(adapter_info));
@@ -420,7 +424,15 @@ fn webxr_runner(mut app: App) {
     let f: Rc<RefCell<Option<XrFrameHandler>>> = Rc::new(RefCell::new(None));
     let g: Rc<RefCell<Option<XrFrameHandler>>> = f.clone();
 
+    // TODO: Update with accurate availble session modes when async is supported
+    app.world
+        .insert_resource(XrSystem::new(vec![XrSessionMode::ImmersiveVR]));
+    println!("inserted XrSystem");
+
     *g.borrow_mut() = Some(Closure::new(move |_time: f64, frame: web_sys::XrFrame| {
+        setup_interaction(&frame, &mut app.world);
+        let action_set = &mut app.world.get_resource_mut::<XrActionSet>().unwrap();
+        handle_input(action_set, &frame);
         app.world.insert_non_send_resource(frame.clone());
 
         app.update();
