@@ -734,6 +734,26 @@ description = "Shows how to load and play an audio file, and control how it's pl
 category = "Audio"
 wasm = true
 
+[[example]]
+name = "spatial_audio_2d"
+path = "examples/audio/spatial_audio_2d.rs"
+
+[package.metadata.example.spatial_audio_2d]
+name = "Spatial Audio 2D"
+description = "Shows how to play spatial audio, and moving the emitter in 2D"
+category = "Audio"
+wasm = true
+
+[[example]]
+name = "spatial_audio_3d"
+path = "examples/audio/spatial_audio_3d.rs"
+
+[package.metadata.example.spatial_audio_3d]
+name = "Spatial Audio 3D"
+description = "Shows how to play spatial audio, and moving the emitter in 3D"
+category = "Audio"
+wasm = true
+
 # Diagnostics
 [[example]]
 name = "log_diagnostics"
@@ -1639,6 +1659,7 @@ wgpu-hal = { git = "https://github.com/expenses/wgpu", rev = "d1a9ad7801022d2b73
 wasm-bindgen = { git = "https://github.com/rustwasm/wasm-bindgen", rev = "a8695bb66c4d92cde4a1746a474084c58801a989" }
 web-sys = { git = "https://github.com/rustwasm/wasm-bindgen", rev = "a8695bb66c4d92cde4a1746a474084c58801a989" }
 js-sys = { git = "https://github.com/rustwasm/wasm-bindgen", rev = "a8695bb66c4d92cde4a1746a474084c58801a989" }
+rodio = { git = "https://github.com/RustAudio/rodio" }
 # wgpu-core = { path = "../wgpu/wgpu-core" }
 
 # uncomment this on macos until openxr sdk is updated with macos buildability
