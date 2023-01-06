@@ -180,7 +180,7 @@ fn setup_webxr_pawn(
     // we'd previously get this transform from left_eye XrView, but the world origin must be fixed
     // regardless of user position/orientation
     let left_tf = Transform {
-        translation: Vec3::new(0.0, 1.0, 0.0),
+        translation: Vec3::new(0.0, 0.0, 0.0),
         rotation: Quat::from_xyzw(0.0, 0.0, 0.0, 1.0),
         scale: Vec3::splat(1.0),
     };
@@ -193,7 +193,7 @@ fn setup_webxr_pawn(
     // we'd previously get this transform from right_eye XrView, but the world origin must be fixed
     // regardless of user position/orientation
     let right_tf = Transform {
-        translation: Vec3::new(0.0, 1.0, 0.0),
+        translation: Vec3::new(0.0, 0.0, 0.0),
         rotation: Quat::from_xyzw(0.0, 0.0, 0.0, 1.0),
         scale: Vec3::splat(1.0),
     };
