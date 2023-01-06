@@ -16,7 +16,7 @@ use bevy_ecs::{
     system::{Commands, NonSend, Query, Res, ResMut, Resource},
 };
 use bevy_log::info;
-use bevy_math::{Mat4, UVec2, Quat, Vec3};
+use bevy_math::{Mat4, UVec2};
 use bevy_reflect::prelude::*;
 use bevy_render::{
     camera::{
