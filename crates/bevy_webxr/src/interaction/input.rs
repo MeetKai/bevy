@@ -70,7 +70,7 @@ pub fn handle_input(action_set: &mut Mut<XrActionSet>, frame: &web_sys::XrFrame)
             let button = match button {
                 Some(b) => b,
                 None => {
-                    warn!("Button does not exist");
+                    // warn!("Button does not exist");
                     continue;
                 }
             };
@@ -90,9 +90,9 @@ pub fn handle_input(action_set: &mut Mut<XrActionSet>, frame: &web_sys::XrFrame)
                 .map(|v| v.as_bool())
                 .unwrap_or(None);
 
-            if button == "xr-standard-trigger" && handedness_string == "right" {
-                info!("{:?}", value.clone());
-            }
+            // if button == "xr-standard-trigger" && handedness_string == "right" {
+                // info!("{:?}", value.clone());
+            // }
 
             let state = match (pressed, touched) {
                 (Some(true), _) => XrButtonState::Pressed,

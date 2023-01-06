@@ -16,7 +16,7 @@ use bevy_ecs::{
     system::{Commands, NonSend, Query, Res, ResMut, Resource},
 };
 use bevy_log::info;
-use bevy_math::{Mat4, UVec2};
+use bevy_math::{Mat4, UVec2, Quat, Vec3};
 use bevy_reflect::prelude::*;
 use bevy_render::{
     camera::{
@@ -59,11 +59,9 @@ fn sync_head_tf(
 ) {
     let reference_space = &xr_ctx.space_info.0;
     let viewer_pose = frame.get_viewer_pose(&reference_space).unwrap();
-    // bevy_log::info!("head transform before {:?}", viewer_pose.transform().position().y());
     let head_tf = viewer_pose.transform().xr_into();
 
     for mut tf in &mut head_tf_q {
-        bevy_log::info!("head transform {:?}", head_tf);
         *tf = head_tf;
     }
 }
@@ -160,7 +158,7 @@ fn setup_webxr_pawn(
     let reference_space = &xr_ctx.space_info.0;
     let viewer_pose = frame.get_viewer_pose(&reference_space).unwrap();
 
-    let head_tf = viewer_pose.transform().xr_into();
+    let head_tf: Transform = viewer_pose.transform().xr_into();
 
     let views: Vec<web_sys::XrView> = viewer_pose
         .views()
@@ -172,7 +170,6 @@ fn setup_webxr_pawn(
         .iter()
         .find(|view| view.eye() == web_sys::XrEye::Left)
         .unwrap();
-    // let left_eye_mat: Mat4 = left_eye.projection_matrix().xr_into();
 
     let left_proj: Mat4 = left_eye.projection_matrix().xr_into();
 
@@ -180,15 +177,26 @@ fn setup_webxr_pawn(
 
     info!("fov:{:?} deg", fov.to_degrees());
 
-    let left_tf: Transform = left_eye.transform().xr_into();
+    // we'd previously get this transform from left_eye XrView, but the world origin must be fixed
+    // regardless of user position/orientation
+    let left_tf = Transform {
+        translation: Vec3::new(0.0, 1.0, 0.0),
+        rotation: Quat::from_xyzw(0.0, 0.0, 0.0, 1.0),
+        scale: Vec3::splat(1.0),
+    };
 
     let right_eye: &web_sys::XrView = views
         .iter()
         .find(|view| view.eye() == web_sys::XrEye::Right)
         .unwrap();
-    // let right_eye_mat = right_eye.projection_matrix().xr_into();
 
-    let right_tf: Transform = right_eye.transform().xr_into();
+    // we'd previously get this transform from right_eye XrView, but the world origin must be fixed
+    // regardless of user position/orientation
+    let right_tf = Transform {
+        translation: Vec3::new(0.0, 1.0, 0.0),
+        rotation: Quat::from_xyzw(0.0, 0.0, 0.0, 1.0),
+        scale: Vec3::splat(1.0),
+    };
 
     let left_projection = WebXrPerspectiveProjection {
         fov,
