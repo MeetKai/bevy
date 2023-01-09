@@ -1,13 +1,13 @@
-use crate::conversion::XrInto;
+use crate::{conversion::XrInto, util::fov_from_mat4};
 use bevy_core_pipeline::{
-    clear_color::ClearColorConfig,
-    core_3d::{Camera3d, Camera3dBundle},
+    clear_color::ClearColorConfig, core_3d::Camera3d, prelude::Camera3dBundle,
     tonemapping::Tonemapping,
 };
 use bevy_hierarchy::BuildChildren;
 pub mod conversion;
 pub mod initialization;
 pub mod interaction;
+pub mod util;
 pub mod webxr_context;
 
 use bevy_app::{App, Plugin};
@@ -66,42 +66,19 @@ fn sync_head_tf(
     }
 }
 
-/// A 3D camera projection in which distant objects appear smaller than close objects.
+/// Copied from Bevy's `PerspectiveProjection`
 #[derive(Component, Debug, Clone, Reflect)]
 #[reflect(Component, Default)]
 pub struct WebXrPerspectiveProjection {
-    // mat: Mat4,
-    // /// The vertical field of view (FOV) in radians.
-    // ///
-    // /// Defaults to a value of π/4 radians or 45 degrees.
     pub fov: f32,
-
-    // /// The aspect ratio (width divided by height) of the viewing frustum.
-    // ///
-    // /// Bevy's [`camera_system`](crate::camera::camera_system) automatically
-    // /// updates this value when the aspect ratio of the associated window changes.
-    // ///
-    // /// Defaults to a value of `1.0`.
     pub aspect_ratio: f32,
-
-    // /// The distance from the camera in world units of the viewing frustum's near plane.
-    // ///
-    // /// Objects closer to the camera than this value will not be visible.
-    // ///
-    // /// Defaults to a value of `0.1`.
     pub near: f32,
-    /// The distance from the camera in world units of the viewing frustum's far plane.
-    ///
-    /// Objects farther from the camera than this value will not be visible.
-    ///
-    /// Defaults to a value of `1000.0`.
     pub far: f32,
 }
 
 impl CameraProjection for WebXrPerspectiveProjection {
     fn get_projection_matrix(&self) -> Mat4 {
         let mut mat = Mat4::perspective_infinite_reverse_rh(self.fov, self.aspect_ratio, self.near);
-        // let mut mat = self.mat;
         mat.y_axis.y = -mat.y_axis.y;
         mat.y_axis.w = -mat.y_axis.w;
         mat
@@ -118,37 +95,69 @@ impl CameraProjection for WebXrPerspectiveProjection {
 
 impl Default for WebXrPerspectiveProjection {
     fn default() -> Self {
-        // let mat = Mat4::perspective_infinite_reverse_rh(std::f32::consts::PI / 4.0, 1.0, 0.1);
-
         WebXrPerspectiveProjection {
-            fov: 90.0_f32.to_radians(),
+            fov: std::f32::consts::PI / 2.0,
             aspect_ratio: 1.0,
             near: 0.01,
             far: 1000.0,
         }
     }
 }
-// pub fn perspective_infinite_reverse_rh(
-//     fov_y_radians: f32,
-//     aspect_ratio: f32,
-//     z_near: f32,
-// ) -> Self {
-//     glam_assert!(z_near > 0.0);
-//     let f = 1.0 / (0.5 * fov_y_radians).tan();
-//     Self::from_cols(
-//         Vec4::new(f / aspect_ratio, 0.0, 0.0, 0.0),
-//         Vec4::new(0.0, f, 0.0, 0.0),
-//         Vec4::new(0.0, 0.0, 0.0, -1.0),
-//         Vec4::new(0.0, 0.0, z_near, 0.0),
-//     )
-// }
-
-pub fn fov_from_mat4(mat: Mat4) -> f32 {
-    let f = mat.y_axis.y;
-    let fov_y_radians = 2.0 * (1.0 / f).atan();
-    fov_y_radians
+#[derive(Bundle)]
+pub struct WebXrCamera3dBundle {
+    pub camera: Camera,
+    pub camera_render_graph: CameraRenderGraph,
+    pub projection: WebXrPerspectiveProjection,
+    pub visible_entities: VisibleEntities,
+    pub frustum: Frustum,
+    pub transform: Transform,
+    pub global_transform: GlobalTransform,
+    pub camera_3d: Camera3d,
+    pub tonemapping: Tonemapping,
 }
 
+impl Default for WebXrCamera3dBundle {
+    fn default() -> Self {
+        Self {
+            camera_render_graph: CameraRenderGraph::new(bevy_core_pipeline::core_3d::graph::NAME),
+            tonemapping: Tonemapping::Enabled {
+                deband_dither: true,
+            },
+            camera: Default::default(),
+            projection: Default::default(),
+            visible_entities: Default::default(),
+            frustum: Default::default(),
+            transform: Default::default(),
+            global_transform: Default::default(),
+            camera_3d: Default::default(),
+        }
+    }
+}
+
+//Get (incomplete) bevy camera bundle from web_sys Mat4
+fn get_camera_3d_bundle_from_webxr_proj_mat(mat: Mat4) -> WebXrCamera3dBundle {
+    let fov = fov_from_mat4(mat);
+    let tf = Transform::IDENTITY;
+
+    // TODO: actual near/far plane conversion
+    let projection = WebXrPerspectiveProjection {
+        fov,
+        far: 1000.0,
+        ..default()
+    };
+    let view_proj = projection.get_projection_matrix() * tf.compute_matrix().inverse();
+    let frustum =
+        Frustum::from_view_projection(&view_proj, &tf.translation, &tf.back(), projection.far);
+    // we'd previously get the eye transfrom from XrView, but the world origin must be fixed
+    // regardless of user position/orientation
+    WebXrCamera3dBundle {
+        projection,
+        frustum,
+        ..default()
+    }
+}
+/// Sets up mid-level webxr pawn,
+/// Spawns a Head Entity with two eyes as Entities
 fn setup_webxr_pawn(
     xr_ctx: NonSend<WebXrContext>,
     frame: NonSend<web_sys::XrFrame>,
@@ -173,55 +182,10 @@ fn setup_webxr_pawn(
 
     let left_proj: Mat4 = left_eye.projection_matrix().xr_into();
 
-    let fov = fov_from_mat4(left_proj);
+    let bundle = get_camera_3d_bundle_from_webxr_proj_mat(left_proj);
 
-    info!("fov:{:?} deg", fov.to_degrees());
+    let viewport_id = id.0;
 
-    // we'd previously get this transform from left_eye XrView, but the world origin must be fixed
-    // regardless of user position/orientation
-    let left_tf = Transform::IDENTITY;
-
-    let right_eye: &web_sys::XrView = views
-        .iter()
-        .find(|view| view.eye() == web_sys::XrEye::Right)
-        .unwrap();
-
-    // we'd previously get this transform from right_eye XrView, but the world origin must be fixed
-    // regardless of user position/orientation
-    let right_tf = Transform::IDENTITY;
-
-    let left_projection = WebXrPerspectiveProjection {
-        fov,
-        far: 1000.0,
-        ..default()
-    };
-
-    let left_view_projection =
-        left_projection.get_projection_matrix() * left_tf.compute_matrix().inverse();
-
-    let left_frustum = Frustum::from_view_projection(
-        &left_view_projection,
-        &left_tf.translation,
-        &left_tf.back(),
-        left_projection.far,
-    );
-
-    let right_projection = WebXrPerspectiveProjection {
-        fov,
-        far: 1000.0,
-        ..default()
-    };
-
-    let right_view_projection =
-        right_projection.get_projection_matrix() * right_tf.compute_matrix().inverse();
-
-    let right_frustum = Frustum::from_view_projection(
-        &right_view_projection,
-        &right_tf.translation,
-        &right_tf.back(),
-        right_projection.far,
-    );
-    let id = id.0;
     let base_layer: web_sys::XrWebGlLayer = frame.session().render_state().base_layer().unwrap();
 
     let resolution = UVec2::new(
@@ -252,67 +216,34 @@ fn setup_webxr_pawn(
         ))
         .with_children(|head| {
             head.spawn((
-                CameraRenderGraph::new(bevy_core_pipeline::core_3d::graph::NAME),
-                Tonemapping::Enabled {
-                    deband_dither: true,
+                WebXrCamera3dBundle {
+                    camera: Camera {
+                        target: RenderTarget::TextureView(viewport_id),
+                        viewport: Some(left_viewport),
+                        ..default()
+                    },
+                    ..bundle
                 },
-                Camera {
-                    target: RenderTarget::TextureView(id),
-                    viewport: Some(left_viewport),
-                    ..default()
-                },
-                left_projection,
-                VisibleEntities::default(),
-                left_frustum,
-                left_tf,
-                GlobalTransform::default(),
-                Camera3d::default(),
                 LeftEyeMarker,
             ));
             head.spawn((
-                CameraRenderGraph::new(bevy_core_pipeline::core_3d::graph::NAME),
-                Tonemapping::Enabled {
-                    deband_dither: true,
+                WebXrCamera3dBundle {
+                    camera: Camera {
+                        target: RenderTarget::TextureView(viewport_id),
+                        priority: 1,
+                        viewport: Some(right_viewport),
+                        ..default()
+                    },
+                    camera_3d: Camera3d {
+                        //Viewport does not affect ClearColor, so we set the right camera to a None Clear Color
+                        clear_color: ClearColorConfig::None,
+                        ..default()
+                    },
+                    ..bundle
                 },
-                Camera {
-                    target: RenderTarget::TextureView(id),
-                    priority: 1,
-                    viewport: Some(right_viewport),
-                    ..default()
-                },
-                right_projection,
-                VisibleEntities::default(),
-                right_frustum,
-                right_tf,
-                Camera3d {
-                    //Viewport does not affect ClearColor, so we set the right camera to a None Clear Color
-                    clear_color: ClearColorConfig::None,
-                    ..default()
-                },
-                GlobalTransform::default(),
                 RightEyeMarker,
             ));
-            // head.spawn((
-            //     Camera3dBundle {
-            //         camera_3d: Camera3d {
-            //             //Viewport does not affect ClearColor, so we set the right camera to a None Clear Color
-            //             clear_color: ClearColorConfig::None,
-            //             ..default()
-            //         },
-            //         camera: Camera {
-            //             target: RenderTarget::TextureView(id),
-            //             priority: 1,
-            // viewport: Some(right_viewport),
-            //             ..default()
-            //         },
-            //         transform: right_tf,
-            //         ..default()
-            //     },
-            //     RightEyeMarker,
-            // ));
         });
-
-    bevy_log::info!("finished setup");
 }
 
 /// Resource that contains the `Uuid` corresponding to WebGlFramebuffer
