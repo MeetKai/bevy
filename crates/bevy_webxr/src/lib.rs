@@ -1,6 +1,6 @@
 use crate::{conversion::XrInto, util::fov_from_mat4};
 use bevy_core_pipeline::{
-    clear_color::ClearColorConfig, core_3d::Camera3d, prelude::Camera3dBundle,
+    clear_color::ClearColorConfig, core_3d::Camera3d,
     tonemapping::Tonemapping,
 };
 use bevy_hierarchy::BuildChildren;
@@ -15,7 +15,6 @@ use bevy_ecs::{
     prelude::*,
     system::{Commands, NonSend, Query, Res, ResMut, Resource},
 };
-use bevy_log::info;
 use bevy_math::{Mat4, UVec2};
 use bevy_reflect::prelude::*;
 use bevy_render::{
@@ -33,7 +32,7 @@ use bevy_xr::{XrActionSet, XrSessionMode, XrSystem};
 use initialization::InitializedState;
 use std::{cell::RefCell, rc::Rc, sync::Arc};
 use wasm_bindgen::{prelude::Closure, JsCast};
-use web_sys::XrWebGlLayer;
+use web_sys::{XrWebGlLayer, XrView, XrEye, XrFrame, XrWebGlLayerInit, XrRenderStateInit, WebGlFramebuffer};
 use webxr_context::*;
 
 use crate::interaction::input::{handle_input, setup_interaction};
@@ -48,6 +47,7 @@ impl Plugin for WebXrPlugin {
         setup(&mut app.world);
         app.add_startup_system(setup_webxr_pawn);
         app.add_system(sync_head_tf);
+        app.add_system(sync_frustum);
         app.add_system(update_manual_texture_views);
     }
 }
@@ -64,6 +64,39 @@ fn sync_head_tf(
     for mut tf in &mut head_tf_q {
         *tf = head_tf;
     }
+}
+
+fn sync_frustum(
+    xr_ctx: NonSend<WebXrContext>,
+    frame: NonSend<XrFrame>,
+    mut left_q: Query<&mut Frustum, (With<LeftEyeMarker>, Without<RightEyeMarker>)>,
+    mut right_q: Query<&mut Frustum, (With<RightEyeMarker>, Without<LeftEyeMarker>)>,
+) {
+    let reference_space = &xr_ctx.space_info.0;
+    let viewer_pose = frame.get_viewer_pose(&reference_space).unwrap();
+
+    let mut left_frustum = left_q.single_mut();
+    let mut right_frustum = right_q.single_mut();
+
+    let views: Vec<XrView> = viewer_pose
+        .views()
+        .iter()
+        .map(|view| view.unchecked_into::<XrView>())
+        .collect();
+
+    let left_eye: &XrView = views
+        .iter()
+        .find(|view| view.eye() == XrEye::Left)
+        .unwrap();
+
+    *left_frustum = frustum_from_view(left_eye);
+
+    let right_eye: &XrView = views
+        .iter()
+        .find(|view| view.eye() == XrEye::Right)
+        .unwrap();
+
+    *right_frustum = frustum_from_view(right_eye);
 }
 
 /// Copied from Bevy's `PerspectiveProjection`
@@ -148,19 +181,38 @@ fn get_camera_3d_bundle_from_webxr_proj_mat(mat: Mat4) -> WebXrCamera3dBundle {
     let view_proj = projection.get_projection_matrix() * tf.compute_matrix().inverse();
     let frustum =
         Frustum::from_view_projection(&view_proj, &tf.translation, &tf.back(), projection.far);
-    // we'd previously get the eye transfrom from XrView, but the world origin must be fixed
-    // regardless of user position/orientation
+
     WebXrCamera3dBundle {
         projection,
         frustum,
         ..default()
     }
 }
+
+pub fn frustum_from_view(view: &XrView) -> Frustum {
+    let proj: Mat4 = view.projection_matrix().xr_into();
+
+    let fov = fov_from_mat4(proj);
+
+    let tf: Transform = view.transform().xr_into();
+
+    // TODO: actual near/far plane conversion
+    let projection = WebXrPerspectiveProjection {
+        fov,
+        far: 1000.0,
+        ..default()
+    };
+
+    let view_proj = projection.get_projection_matrix() * tf.compute_matrix().inverse();
+
+    Frustum::from_view_projection(&view_proj, &tf.translation, &tf.back(), projection.far)
+}
+
 /// Sets up mid-level webxr pawn,
 /// Spawns a Head Entity with two eyes as Entities
 fn setup_webxr_pawn(
     xr_ctx: NonSend<WebXrContext>,
-    frame: NonSend<web_sys::XrFrame>,
+    frame: NonSend<XrFrame>,
     id: Res<FramebufferUuid>,
     mut commands: Commands,
 ) {
@@ -169,24 +221,22 @@ fn setup_webxr_pawn(
 
     let head_tf: Transform = viewer_pose.transform().xr_into();
 
-    let views: Vec<web_sys::XrView> = viewer_pose
+    let views: Vec<XrView> = viewer_pose
         .views()
         .iter()
-        .map(|view| view.unchecked_into::<web_sys::XrView>())
+        .map(|view| view.unchecked_into::<XrView>())
         .collect();
 
-    let left_eye: &web_sys::XrView = views
+    let left_eye: &XrView = views
         .iter()
-        .find(|view| view.eye() == web_sys::XrEye::Left)
+        .find(|view| view.eye() == XrEye::Left)
         .unwrap();
 
     let left_proj: Mat4 = left_eye.projection_matrix().xr_into();
 
-    let bundle = get_camera_3d_bundle_from_webxr_proj_mat(left_proj);
-
     let viewport_id = id.0;
 
-    let base_layer: web_sys::XrWebGlLayer = frame.session().render_state().base_layer().unwrap();
+    let base_layer: XrWebGlLayer = frame.session().render_state().base_layer().unwrap();
 
     let resolution = UVec2::new(
         base_layer.framebuffer_width(),
@@ -222,7 +272,7 @@ fn setup_webxr_pawn(
                         viewport: Some(left_viewport),
                         ..default()
                     },
-                    ..bundle
+                    ..get_camera_3d_bundle_from_webxr_proj_mat(left_proj)
                 },
                 LeftEyeMarker,
             ));
@@ -239,7 +289,7 @@ fn setup_webxr_pawn(
                         clear_color: ClearColorConfig::None,
                         ..default()
                     },
-                    ..bundle
+                    ..get_camera_3d_bundle_from_webxr_proj_mat(left_proj)
                 },
                 RightEyeMarker,
             ));
@@ -285,16 +335,16 @@ fn setup(world: &mut World) {
         queue,
     } = world.remove_resource().unwrap();
     let adapter_info = adapter.get_info();
-    let layer_init = web_sys::XrWebGlLayerInit::new();
+    let layer_init = XrWebGlLayerInit::new();
 
-    let xr_gl_layer = web_sys::XrWebGlLayer::new_with_web_gl2_rendering_context_and_layer_init(
+    let xr_gl_layer = XrWebGlLayer::new_with_web_gl2_rendering_context_and_layer_init(
         &webxr_context.session,
         &webgl2_context,
         &layer_init,
     )
     .unwrap();
 
-    let mut render_state_init = web_sys::XrRenderStateInit::new();
+    let mut render_state_init = XrRenderStateInit::new();
     render_state_init
         .depth_near(0.001)
         .base_layer(Some(&xr_gl_layer));
@@ -314,7 +364,7 @@ fn setup(world: &mut World) {
 
 /// System that updates `ManualTextureViews` with the new `WebGlFramebuffer`
 fn update_manual_texture_views(
-    frame: bevy_ecs::prelude::NonSend<web_sys::XrFrame>,
+    frame: bevy_ecs::prelude::NonSend<XrFrame>,
     device: Res<RenderDevice>,
     framebuffer_uuid: Res<FramebufferUuid>,
     mut manual_tex_view: ResMut<ManualTextureViews>,
@@ -322,7 +372,7 @@ fn update_manual_texture_views(
     let base_layer: XrWebGlLayer = frame.session().render_state().base_layer().unwrap();
 
     //Reflect hack because base_layer.framebuffer is technically null
-    let framebuffer: web_sys::WebGlFramebuffer =
+    let framebuffer: WebGlFramebuffer =
         js_sys::Reflect::get(&base_layer, &"framebuffer".into())
             .unwrap()
             .into();
@@ -351,7 +401,7 @@ fn update_manual_texture_views(
 fn webxr_runner(mut app: App) {
     let webxr_context = app.world.get_non_send_resource::<WebXrContext>().unwrap();
     let session = webxr_context.session.clone();
-    type XrFrameHandler = Closure<dyn FnMut(f64, web_sys::XrFrame)>;
+    type XrFrameHandler = Closure<dyn FnMut(f64, XrFrame)>;
     let f: Rc<RefCell<Option<XrFrameHandler>>> = Rc::new(RefCell::new(None));
     let g: Rc<RefCell<Option<XrFrameHandler>>> = f.clone();
 
@@ -360,7 +410,7 @@ fn webxr_runner(mut app: App) {
         .insert_resource(XrSystem::new(vec![XrSessionMode::ImmersiveVR]));
     println!("inserted XrSystem");
 
-    *g.borrow_mut() = Some(Closure::new(move |_time: f64, frame: web_sys::XrFrame| {
+    *g.borrow_mut() = Some(Closure::new(move |_time: f64, frame: XrFrame| {
         setup_interaction(&frame, &mut app.world);
         let action_set = &mut app.world.get_resource_mut::<XrActionSet>().unwrap();
         handle_input(action_set, &frame);
@@ -377,8 +427,8 @@ fn webxr_runner(mut app: App) {
 #[cfg(target_arch = "wasm32")]
 pub fn create_view_from_device_framebuffer(
     device: &wgpu::Device,
-    framebuffer: web_sys::WebGlFramebuffer,
-    base_layer: &web_sys::XrWebGlLayer,
+    framebuffer: WebGlFramebuffer,
+    base_layer: &XrWebGlLayer,
     format: wgpu::TextureFormat,
     label: &'static str,
 ) -> VrFramebufferTexture {
