@@ -1,6 +1,6 @@
 use crate::{conversion::XrInto, util::fov_from_mat4};
 use bevy_core_pipeline::{
-    clear_color::ClearColorConfig, core_3d::Camera3d, prelude::Camera3dBundle,
+    clear_color::ClearColorConfig, core_3d::Camera3d,
     tonemapping::Tonemapping,
 };
 use bevy_hierarchy::BuildChildren;
@@ -15,7 +15,6 @@ use bevy_ecs::{
     prelude::*,
     system::{Commands, NonSend, Query, Res, ResMut, Resource},
 };
-use bevy_log::info;
 use bevy_math::{Mat4, UVec2};
 use bevy_reflect::prelude::*;
 use bevy_render::{
@@ -48,6 +47,7 @@ impl Plugin for WebXrPlugin {
         setup(&mut app.world);
         app.add_startup_system(setup_webxr_pawn);
         app.add_system(sync_head_tf);
+        app.add_system(sync_frustum);
         app.add_system(update_manual_texture_views);
     }
 }
@@ -64,6 +64,65 @@ fn sync_head_tf(
     for mut tf in &mut head_tf_q {
         *tf = head_tf;
     }
+}
+
+fn sync_frustum(
+    xr_ctx: NonSend<WebXrContext>,
+    frame: NonSend<web_sys::XrFrame>,
+    mut left_q: Query<&mut Frustum, (With<LeftEyeMarker>, Without<RightEyeMarker>)>,
+    mut right_q: Query<&mut Frustum, (With<RightEyeMarker>, Without<LeftEyeMarker>)>,
+) {
+    let reference_space = &xr_ctx.space_info.0;
+    let viewer_pose = frame.get_viewer_pose(&reference_space).unwrap();
+
+    let mut left_frustum = left_q.single_mut();
+    let mut right_frustum = right_q.single_mut();
+
+    let views: Vec<web_sys::XrView> = viewer_pose
+        .views()
+        .iter()
+        .map(|view| view.unchecked_into::<web_sys::XrView>())
+        .collect();
+
+    let left_eye: &web_sys::XrView = views
+        .iter()
+        .find(|view| view.eye() == web_sys::XrEye::Left)
+        .unwrap();
+
+    let left_proj: Mat4 = left_eye.projection_matrix().xr_into();
+
+    let fov = fov_from_mat4(left_proj);
+
+    let tf: Transform = left_eye.transform().xr_into();
+
+    // TODO: actual near/far plane conversion
+    let projection = WebXrPerspectiveProjection {
+        fov,
+        far: 1000.0,
+        ..default()
+    };
+    let view_proj = projection.get_projection_matrix() * tf.compute_matrix().inverse();
+    *left_frustum = Frustum::from_view_projection(&view_proj, &tf.translation, &tf.back(), projection.far);
+
+    let right_eye: &web_sys::XrView = views
+        .iter()
+        .find(|view| view.eye() == web_sys::XrEye::Right)
+        .unwrap();
+
+    let right_proj: Mat4 = right_eye.projection_matrix().xr_into();
+
+    let fov = fov_from_mat4(right_proj);
+
+    let tf: Transform = right_eye.transform().xr_into();
+
+    // TODO: actual near/far plane conversion
+    let projection = WebXrPerspectiveProjection {
+        fov,
+        far: 1000.0,
+        ..default()
+    };
+    let view_proj = projection.get_projection_matrix() * tf.compute_matrix().inverse();
+    *right_frustum = Frustum::from_view_projection(&view_proj, &tf.translation, &tf.back(), projection.far);
 }
 
 /// Copied from Bevy's `PerspectiveProjection`
@@ -182,8 +241,6 @@ fn setup_webxr_pawn(
 
     let left_proj: Mat4 = left_eye.projection_matrix().xr_into();
 
-    let bundle = get_camera_3d_bundle_from_webxr_proj_mat(left_proj);
-
     let viewport_id = id.0;
 
     let base_layer: web_sys::XrWebGlLayer = frame.session().render_state().base_layer().unwrap();
@@ -222,7 +279,7 @@ fn setup_webxr_pawn(
                         viewport: Some(left_viewport),
                         ..default()
                     },
-                    ..bundle
+                    ..get_camera_3d_bundle_from_webxr_proj_mat(left_proj)
                 },
                 LeftEyeMarker,
             ));
@@ -239,7 +296,7 @@ fn setup_webxr_pawn(
                         clear_color: ClearColorConfig::None,
                         ..default()
                     },
-                    ..bundle
+                    ..get_camera_3d_bundle_from_webxr_proj_mat(left_proj)
                 },
                 RightEyeMarker,
             ));
